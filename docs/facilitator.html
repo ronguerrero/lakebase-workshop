@@ -197,7 +197,7 @@
       <tr><td>Lakebase (autoscaling projects)</td><td>the whole workshop</td><td>You create the project(s) + branches below. Mind the per-project branch limit.</td></tr>
       <tr><td>Lakebase synced tables (reverse ETL)</td><td>Ex6 Delta → <code>lb_*</code></td><td>Evolving/preview — confirm the API + Preview status in the workspace.</td></tr>
       <tr><td>Serverless Lakeflow/DLT enabled</td><td>Ex7 SCD1 pipeline</td><td>Attendees create it with their workspace access — <b>no separate entitlement</b> to grant.</td></tr>
-      <tr><td>Served pay-per-token Claude endpoint</td><td>feature-store chatbot + memory agent</td><td>e.g. <code>databricks-claude-sonnet-4-5</code>; the notebook grants attendees <code>CAN QUERY</code> (<code>fm_endpoint</code> widget). Swap the name in the notebooks if yours differs.</td></tr>
+      <tr><td>Served pay-per-token Claude endpoint</td><td>feature-store chatbot + memory agent</td><td>e.g. <code>databricks-claude-sonnet-4-5</code>. A <b>system</b> foundation model — workspace users can query it with <b>no per-user grant</b>; attendees just set the <code>llm_endpoint</code> widget to whatever your region serves.</td></tr>
       <tr><td>Model Serving enabled</td><td>feature-store Feature Serving</td><td>Attendees create the endpoint with their workspace access — <b>no separate entitlement</b> to grant.</td></tr>
     </table>
     <p>You need <b>workspace admin</b> — no account admin required. Everything runs <b>inside
@@ -215,7 +215,6 @@
 grant_users                = sofia.martins@cibc.com, david.chen@cibc.com, priya.nair@cibc.com
 project_id                 = cibc-cm-workshop
 uc_catalog                 = main
-fm_endpoint                = databricks-claude-sonnet-4-5   <span class="c"># auto-grants CAN QUERY (blank = skip)</span>
 branch_max_cu              = 4
 dry_run                    = true   <span class="c"># preview first, then set false and re-run</span>
 <span class="c"># warehouse_id           = &lt;id&gt;   # OPTIONAL — the workshop needs no warehouse</span></code></pre>
@@ -224,7 +223,7 @@ dry_run                    = true   <span class="c"># preview first, then set fa
       <li>Creates the project <code>cibc-cm-workshop</code> (if missing) and waits for its production endpoint.</li>
       <li>Grants each attendee <code>CAN_USE</code> on the project and creates their Postgres OAuth login role (installs the <code>databricks_auth</code> extension).</li>
       <li>Forks a branch per attendee off production (<code>br · &lt;username&gt;</code>, <code>no_expiry</code>) with a primary READ/WRITE endpoint set to an autoscaling range of <b>1 → 4 CU</b> (from <code>branch_max_cu</code>) so the Exercise 1 load demo can show compute scaling.</li>
-      <li>Creates the UC catalog + a per-attendee <code>cm_&lt;user&gt;</code> schema they own + <code>USE CATALOG</code> (<code>uc_catalog</code> widget), and grants attendees <code>CAN QUERY</code> on the Claude FM endpoint (<code>fm_endpoint</code> widget).</li>
+      <li>Creates the UC catalog + a per-attendee <code>cm_&lt;user&gt;</code> schema they own + <code>USE CATALOG</code> (<code>uc_catalog</code> widget). <em>(The Claude endpoint is a system foundation model — no <code>CAN QUERY</code> grant needed.)</em></li>
       <li>Prints the attendee → project/branch map, the workspace toggles to confirm, and the one value each attendee sets.</li>
     </ol>
     <div class="note"><b>Why <code>branch_max_cu = 4</code>:</b> Exercise 1's autoscale/load demo only shows
@@ -238,12 +237,12 @@ dry_run                    = true   <span class="c"># preview first, then set fa
       attendee with "branch created" + "endpoint"; the map lists every attendee against the project.</div>
 
     <h3>Then confirm the workspace toggles (not per-user grants)</h3>
-    <p>The notebook sets <b>every per-user grant</b> — project, UC catalog/schema, and the FM endpoint
-      <code>CAN QUERY</code>. What's left isn't a grant at all; it's workspace-level enablement the
+    <p>The notebook sets <b>the per-user grants</b> — the Lakebase project and the UC catalog/schema.
+      What's left isn't a grant at all; it's workspace-level enablement the
       notebook reminds you to confirm:</p>
     <ol class="steps">
       <li><b>Serverless notebooks/jobs enabled.</b> The exercises run on serverless notebook compute — <b>no SQL warehouse needed</b>.</li>
-      <li><b>Model Serving + Foundation Model APIs enabled</b> in the workspace/region.</li>
+      <li><b>Model Serving + Foundation Model APIs enabled</b> in the workspace/region. The Claude endpoint is a <b>system foundation model</b> — workspace users query it with no per-user grant.</li>
       <li><b>Serverless DLT enabled.</b> Attendees create the Ex7 pipeline and the Ex4 Feature Serving endpoint with their <b>workspace access</b> — there's <b>no distinct "create pipeline"/"create endpoint" entitlement</b> to grant.</li>
     </ol>
 

@@ -56,10 +56,11 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
    `-2`, …. **`branch_max_cu`** (default 4) gives each branch an autoscaling envelope
    (min 1 → max 4 CU) so the Exercise 1 load demo shows scaling.
 3. **Confirm the workspace toggles** the notebook reminds you about — the per-user grants
-   (project, UC, and the FM endpoint `CAN QUERY` via the `fm_endpoint` widget) are set for you.
-   What's left is workspace-level: serverless notebooks/jobs, Model Serving, and serverless DLT
-   enabled. There's **no SQL warehouse requirement** and no "create endpoint/pipeline" entitlement
-   to grant — attendees create those with their workspace access. See `FACILITATOR.md → Permissions`.
+   (project + UC) are set for you. What's left is workspace-level: serverless notebooks/jobs,
+   Model Serving, and serverless DLT enabled. There's **no SQL warehouse requirement**, the Claude
+   endpoint is a **system foundation model** (no `CAN QUERY` grant needed), and there's no
+   "create endpoint/pipeline" entitlement to grant — attendees create those with their workspace
+   access. See `FACILITATOR.md → Permissions`.
 4. **Tell participants the project id.** Everyone sets `SHARED_PROJECT_ID` in `labs/_setup.py`
    (or exports `LAKEBASE_SHARED_PROJECT_ID`) to the project you created (e.g. `cibc-cm-workshop`).
    If you split a large room across `cibc-cm-workshop-1`, `-2`, …, they can still set the **base**

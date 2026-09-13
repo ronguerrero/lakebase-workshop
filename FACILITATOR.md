@@ -23,7 +23,7 @@ group. The reference solution notebook in each folder is the validated version t
 | **Serverless notebooks/jobs** | all exercises run on serverless notebook compute | Required — no cluster, **and no SQL warehouse** (the exercises use `spark.sql` on notebook compute + Lakebase's built-in editor). A serverless SQL warehouse is *optional* — only if you prefer the Databricks SQL Editor. |
 | **Lakebase** (managed Postgres, autoscaling projects) | the whole workshop | Required. The facilitator creates one shared project + **a branch per attendee** via the `scripts/facilitator_setup_notebook` notebook. **Mind the per-project branch limit** — past it, the notebook splits attendees across extra projects (`max_branches_per_project` widget). |
 | **`databricks_auth` Postgres extension** | OAuth login roles for participants | Installed by the setup notebook (`CREATE EXTENSION databricks_auth`). |
-| **Foundation Model APIs** — a served pay-per-token Claude endpoint (e.g. `databricks-claude-sonnet-4-5`) | feature-store chatbot + memory agent LLM | Must be **served in your region** — check `system.ai` / serving endpoints directly; docs lag. The setup notebook grants attendees `CAN QUERY` on it (`fm_endpoint` widget); swap the name in the notebooks if yours differs. |
+| **Foundation Model APIs** — a served pay-per-token Claude endpoint (e.g. `databricks-claude-sonnet-4-5`) | feature-store chatbot + memory agent LLM | Must be **served in your region** — check the Serving UI / `w.serving_endpoints.list()`; docs lag. It's a **system** endpoint, so workspace users can query it with **no per-user grant** — attendees just set the `llm_endpoint` widget to whatever your region serves. |
 | **Feature Engineering / Online Feature Store** | Ex4 (feature store) publish to Lakebase + Feature Serving | GA. `databricks-feature-engineering>=0.13.0`. |
 | **Model Serving — enabled in the workspace** | Ex4 Feature Serving endpoint | Attendees create the endpoint using their workspace access — there is **no separate "create serving endpoint" entitlement** to grant; just have Model Serving enabled in the workspace/region. |
 | **Change Data Feed** | Ex6 (Delta→Lakebase sync) + Ex4 offline feature table (publish prerequisite) | GA (the notebooks set it). |
@@ -56,8 +56,6 @@ Simplest: put the attendees in one workspace group and grant that group.
   everyone. All via the UC SDK — no SQL warehouse. (Creating the catalog needs `CREATE CATALOG` /
   metastore admin; if you lack it, the notebook reports it and a metastore admin creates the catalog
   once, then you re-run.)
-- (with the `fm_endpoint` widget) **`CAN QUERY` on the Claude FM endpoint** the feature-store chatbot
-  + memory agent call.
 - (with the `app_name` widget) the Lab app's service principal → project `CAN_MANAGE` + a Postgres role.
 - (with the optional `warehouse_id` widget) `CAN USE` on a SQL warehouse — only if you choose to use
   one (the workshop doesn't need it).
@@ -65,7 +63,8 @@ Simplest: put the attendees in one workspace group and grant that group.
 **Not per-user grants — confirm these workspace settings instead (the notebook reminds you):**
 - **Serverless notebooks/jobs enabled.** The exercises run on serverless notebook compute — **no SQL
   warehouse required.**
-- **Model Serving + Foundation Model APIs enabled** in the workspace/region.
+- **Model Serving + Foundation Model APIs enabled** in the workspace/region. The Claude endpoint is
+  a **system foundation model** — workspace users can query it with **no per-user grant**.
 - **Serverless DLT enabled.** Attendees create the Ex7 pipeline and the Ex4 Feature Serving endpoint
   using their **workspace access** — there is **no distinct "create pipeline" / "create serving
   endpoint" entitlement** to grant. Being a workspace user (plus the toggles above) is what enables it.

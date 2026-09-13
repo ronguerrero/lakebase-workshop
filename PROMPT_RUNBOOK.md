@@ -36,17 +36,17 @@ widgets (idempotent):
 grant_users              = a@cibc.com, b@cibc.com          # attendee emails
 project_id               = cibc-cm-workshop
 uc_catalog               = main                            # or your catalog (blank = skip UC)
-fm_endpoint              = databricks-claude-sonnet-4-5     # auto-grants CAN QUERY (blank = skip)
 branch_max_cu            = 4
 dry_run                  = true                            # preview first, then set false and re-run
 # large room past the per-project branch limit:
 max_branches_per_project = 18   # splits attendees across cibc-cm-workshop-1, -2, …; each sets SHARED_PROJECT_ID
 # warehouse_id           = <id>  # OPTIONAL — the workshop needs no warehouse; set only to use one
 ```
-The notebook sets every per-user grant (project, UC, FM endpoint `CAN QUERY`). It then reminds you to
-confirm the workspace **toggles** — serverless notebooks/jobs, Model Serving, and serverless DLT
-enabled; attendees create the Feature Serving endpoint (Ex4) and DLT pipeline (Ex7) with their
-workspace access (no entitlement to grant).
+The notebook sets the per-user grants (project + UC). It then reminds you to confirm the workspace
+**toggles** — serverless notebooks/jobs, Model Serving, and serverless DLT enabled. The Claude
+endpoint is a **system foundation model** (workspace users query it with no grant), and attendees
+create the Feature Serving endpoint (Ex4) and DLT pipeline (Ex7) with their workspace access (no
+entitlement to grant).
 
 ✓ Project AVAILABLE; each participant has their own branch `br · <username>` and can connect and
 create their `cm_<username>` schema on it.
