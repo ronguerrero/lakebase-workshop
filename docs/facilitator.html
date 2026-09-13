@@ -250,10 +250,9 @@ dry_run                    = true   <span class="c"># preview first, then set fa
     <p>Attendees set <b>two</b> values — the <code>SHARED_PROJECT_ID</code> and
       <code>SHARED_CATALOG</code> constants in
       <a href="../labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a> — to the
-      project id and Unity Catalog catalog you created. Set once, every exercise inherits them (they
-      also surface as the <code>shared_project_id</code> / <code>uc_catalog</code> widgets on each
-      notebook). Their branch <em>and</em> their <code>cm_&lt;user&gt;</code> schema are derived from
-      their username automatically — nothing else to set:</p>
+      project id and Unity Catalog catalog you created. Set once, every exercise inherits them (nothing
+      to configure per notebook). Their branch <em>and</em> their <code>cm_&lt;user&gt;</code> schema are
+      derived from their username automatically — nothing else to set:</p>
     <pre><code><span class="c"># each attendee, once, in their clone of labs/_setup.py:</span>
 SHARED_PROJECT_ID = "cibc-cm-workshop"
 SHARED_CATALOG    = "main"   <span class="c"># the catalog you passed to the setup notebook</span></code></pre>

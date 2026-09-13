@@ -15,10 +15,9 @@
 # MAGIC **Before you start (once):** open <a href="$./labs/_setup">labs/_setup</a> and set the two
 # MAGIC constants near the top — `SHARED_PROJECT_ID` (your facilitator's Lakebase project id, e.g.
 # MAGIC `"cibc-cm-workshop"`) and `SHARED_CATALOG` (the workshop's Unity Catalog catalog, e.g. `"main"`).
-# MAGIC Set them once, no commit needed, and every exercise inherits them (they also appear as the
-# MAGIC `shared_project_id` / `uc_catalog` widgets at the top of each notebook if you'd rather set them
-# MAGIC there). Enter the base project id even if the room was split across projects; you're auto-routed
-# MAGIC to the project that holds your branch. Your `cm_<user>` schema is created for you — nothing to set.
+# MAGIC Set them once, no commit needed, and every exercise inherits them — nothing to configure per
+# MAGIC notebook. Enter the base project id even if the room was split across projects; you're
+# MAGIC auto-routed to the project that holds your branch. Your `cm_<user>` schema is created for you.
 # MAGIC
 # MAGIC **How to use this guide:** the links below open each exercise notebook in your clone (nothing to run),
 # MAGIC and the architecture diagrams are inline. Work the exercises in order 1 → 7 — open each notebook and **Run all**.

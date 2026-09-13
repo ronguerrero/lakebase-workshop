@@ -32,30 +32,23 @@ def _sanitize(email):
 
 # ── Shared workshop config: Lakebase project + Unity Catalog catalog ────────
 # All participants share ONE Lakebase project (each on their OWN branch) and ONE Unity
-# Catalog catalog (each in their OWN cm_<user> schema). Because every exercise `%run`s this
-# helper, both are surfaced here — as WIDGETS at the top of each notebook — so you configure
-# them in ONE place. Two ways to set them:
+# Catalog catalog (each in their OWN cm_<user> schema). Every exercise `%run`s this helper,
+# so you configure both in ONE place — right here, so the notebooks stay clean (no per-lab
+# config widgets to fiddle with).
 #
-#   • ►► Edit the two constants below ONCE in your clone ◄◄ — no commit/push, no repo access
-#     needed. Every exercise's widget then DEFAULTS to your values (set once, applies to all).
-#   • Or type them into the `shared_project_id` / `uc_catalog` widgets per notebook (a value
-#     typed into the widget wins over the constant for that notebook).
-#
-# (Exporting LAKEBASE_SHARED_PROJECT_ID overrides both, if present.) Enter the BASE project id
-# even if the room was split across projects — you're auto-routed to the project that holds
-# your branch. If the project is unset or wrong, the helpers fail fast with a clear message.
+# ►► ATTENDEE: SET THESE TWO CONSTANTS ONCE in your clone ◄◄ — no commit/push, no repo access
+# needed, and every exercise inherits them. (Exporting LAKEBASE_SHARED_PROJECT_ID overrides the
+# project id, if present.) Enter the BASE project id even if the room was split across projects —
+# you're auto-routed to the project that holds your branch. If the project is unset or wrong, the
+# helpers fail fast with a clear message.
 SHARED_PROJECT_ID = ""       # ◄◄ set me, e.g. "cibc-cm-workshop"
 SHARED_CATALOG    = "main"   # ◄◄ the workshop's shared UC catalog (Ex4 feature store, Ex6 sync, Ex7 SCD1)
 
-dbutils.widgets.text("shared_project_id", SHARED_PROJECT_ID, "Lakebase shared project id")
-dbutils.widgets.text("uc_catalog", SHARED_CATALOG, "Workshop shared UC catalog")
-
 PROJECT_ID = (os.environ.get("LAKEBASE_SHARED_PROJECT_ID", "").strip()
-              or dbutils.widgets.get("shared_project_id").strip()
               or SHARED_PROJECT_ID).strip()
 
 # The shared Unity Catalog catalog (analytical side — feature store + sync/SCD1 Delta tables).
-UC_CATALOG = (dbutils.widgets.get("uc_catalog").strip() or SHARED_CATALOG).strip()
+UC_CATALOG = SHARED_CATALOG.strip()
 
 # Each participant works on their OWN branch of the shared project — a Git-like,
 # copy-on-write, fully-isolated clone with its own compute endpoint. The branch id is
