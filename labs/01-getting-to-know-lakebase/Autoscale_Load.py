@@ -62,15 +62,13 @@ ep = get_endpoint()                       # defaults to YOUR branch (USER_BRANCH
 st = ep.status
 MIN_CU = getattr(st, "autoscaling_limit_min_cu", None)
 MAX_CU = getattr(st, "autoscaling_limit_max_cu", None)
-# The read/write POOLED host is the right target for many concurrent connections.
-hosts = st.hosts
-POOLED_HOST = getattr(hosts, "read_write_pooled_host", None) or hosts.host
-DIRECT_HOST = hosts.host
+# Connect to the DIRECT endpoint host (the pooled host rejects the search_path startup option).
+DIRECT_HOST = st.hosts.host
 
 print(f"Branch:        {USER_BRANCH}")
 print(f"Endpoint:      {ep.name.split('/')[-1]}   state={getattr(st,'current_state',None)}")
 print(f"Autoscaling:   min={MIN_CU} CU  →  max={MAX_CU} CU")
-print(f"Pooled host:   {POOLED_HOST}")
+print(f"Endpoint host: {DIRECT_HOST}")
 print(f"Last active:   {getattr(st,'last_active_time',None)}")
 
 if MIN_CU is not None and MAX_CU is not None and float(MIN_CU) >= float(MAX_CU):
@@ -132,21 +130,24 @@ print("✓ Seeded load_orders (20k rows) on your branch")
 
 # MAGIC %md
 # MAGIC ## 3. Fire the load
-# MAGIC `WORKERS` threads, each on its own connection (via the **pooled** host), run a tight loop of
+# MAGIC `WORKERS` threads, each on its **own connection** to your branch endpoint, run a tight loop of
 # MAGIC CPU-heavy SQL — hashing + sorting + aggregating — for `DURATION` seconds. Each worker mints its
 # MAGIC own short-lived OAuth credential (tokens rotate ~hourly; per-connection is the documented
-# MAGIC pattern). Meanwhile the main thread polls the endpoint state every 15s.
+# MAGIC pattern) and connects to the **direct** endpoint host — the pooled host rejects the
+# MAGIC `search_path` startup option. Meanwhile the main thread polls the endpoint state every 15s.
 
 # COMMAND ----------
 
-import time, threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 import psycopg
 
 deadline = time.time() + DURATION
 counts = [0] * WORKERS
+errors = []   # surface worker failures instead of silently doing nothing
 
 # A deliberately CPU-ish query: hash + sort + aggregate a big generate_series joined to orders.
+# `load_orders` is unqualified — the connection sets search_path to your schema.
 LOAD_SQL = """
 SELECT count(*) FROM (
     SELECT g.g, md5(g.g::text) h, o.instrument
@@ -157,19 +158,31 @@ SELECT count(*) FROM (
 """
 
 def worker(i):
-    # own connection per worker, minted fresh (do not share connections across threads)
-    cred = w.postgres.generate_database_credential(endpoint=ep.name)
-    c = psycopg.connect(host=POOLED_HOST, dbname=PG_DATABASE, user=user_email,
-                        password=cred.token, sslmode="require", connect_timeout=20,
-                        options=f"-c search_path={PG_SCHEMA},public")
+    # Own connection per worker (never share across threads), on YOUR branch's endpoint host —
+    # the same direct host + OAuth + search_path path get_connection() uses (proven to work).
+    # NOTE: do NOT use the pooled host here — the transaction pooler rejects the
+    # `options=-c search_path` startup parameter, which silently killed every worker.
+    try:
+        cred = w.postgres.generate_database_credential(endpoint=ep.name)
+        c = psycopg.connect(host=DIRECT_HOST, dbname=PG_DATABASE, user=user_email,
+                            password=cred.token, sslmode="require", connect_timeout=20,
+                            options=f"-c search_path={PG_SCHEMA},public")
+    except Exception as e:
+        errors.append(f"worker {i}: connect failed: {type(e).__name__}: {str(e)[:160]}")
+        return
     try:
         while time.time() < deadline:
             with c.cursor() as cur:
                 cur.execute(LOAD_SQL)
                 cur.fetchone()
             counts[i] += 1
+    except Exception as e:
+        errors.append(f"worker {i}: query failed: {type(e).__name__}: {str(e)[:160]}")
     finally:
-        c.close()
+        try:
+            c.close()
+        except Exception:
+            pass
 
 print(f"▶ Firing {WORKERS} workers for {DURATION}s — watch the Monitoring CU graph now.\n")
 pool = ThreadPoolExecutor(max_workers=WORKERS)
@@ -178,6 +191,7 @@ for i in range(WORKERS):
 
 # Poll endpoint state on a timeline while the load runs.
 start = time.time()
+_warned = False
 while time.time() < deadline:
     time.sleep(15)
     try:
@@ -190,11 +204,22 @@ while time.time() < deadline:
               f"  queries_so_far={sum(counts)}")
     except Exception as e:
         print(f"  (poll error: {e})")
+    # If nothing is running and workers already reported errors, surface the first one now
+    # (don't wait the full duration to discover the load never started).
+    if not _warned and sum(counts) == 0 and errors:
+        print(f"  ⚠ workers aren't executing — first error: {errors[0]}")
+        _warned = True
 
 pool.shutdown(wait=True)
 total = sum(counts)
 print(f"\n✓ Load complete: {total} queries across {WORKERS} workers in {DURATION}s "
-      f"(~{total/DURATION:.1f} q/s).")
+      f"(~{total/max(DURATION,1):.1f} q/s).")
+if errors:
+    print(f"\n⚠ {len(errors)} worker error(s) — the load did not run cleanly. First few:")
+    for msg in errors[:5]:
+        print("   " + msg)
+    print("Check that your branch endpoint is reachable and SHARED_PROJECT_ID points at the "
+          "right project (see the fail-fast message from _setup if the branch is wrong).")
 
 # COMMAND ----------
 
