@@ -39,8 +39,11 @@ your Unity Catalog schema `cm_<you>`, next to the SCD1 outputs.
 ### Requirements & gotchas (Public Preview)
 - **`REPLICA IDENTITY FULL`** on each source table (the lab sets it) so update/delete WAL records carry
   the full old row; each table also needs a primary key and **at least one row**.
-- The **destination catalog must not use default storage** — if the history tables never appear, this
-  is the most likely cause (see your facilitator / `FACILITATOR.md`).
+- The **destination catalog must be backed by an explicit external location.** A catalog on the
+  metastore's default managed storage is rejected — `create_cdf_config` fails with *"not supported for
+  catalogs using Default Storage"* — and this holds **even if the catalog reports a `storage_root`**
+  (the metastore-managed root still counts as default). Your facilitator points `SHARED_CATALOG` at a
+  suitable catalog (see `FACILITATOR.md`).
 - Creating a feed needs **CAN MANAGE on the Lakebase project**. Attendees get `CAN USE` by default, so
   the notebook fails with a clear message if it can't create the feed — your facilitator either grants
   CAN MANAGE or creates the feed for your `cm_<you>_ops` schema.

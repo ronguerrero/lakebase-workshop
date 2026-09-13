@@ -142,26 +142,52 @@ print(f"✓ {PG_OPS_SCHEMA}.positions + .limits ready (PK + REPLICA IDENTITY FUL
 
 from databricks.sdk.service.postgres import CdfConfig
 
-parent = f"projects/{PROJECT_ID}/branches/{USER_BRANCH}/databases/{PG_DATABASE}"
+# GOTCHA: the database *resource id* in SDK paths is hyphenated (`databricks-postgres`), even though
+# the actual Postgres database name is `databricks_postgres` (underscore — that's PG_DATABASE, used as
+# the psycopg dbname). Discover the real resource id from the branch rather than hardcoding.
+_dbs = list(w.postgres.list_databases(parent=f"projects/{PROJECT_ID}/branches/{USER_BRANCH}"))
+_db_resource = _dbs[0].name.split("/databases/")[-1] if _dbs else "databricks-postgres"
+parent = f"projects/{PROJECT_ID}/branches/{USER_BRANCH}/databases/{_db_resource}"
 cfg = CdfConfig(catalog=UC_CATALOG, schema=HISTORY_SCHEMA, postgres_schema=PG_OPS_SCHEMA)
-try:
-    op = w.postgres.create_cdf_config(parent=parent, cdf_config=cfg, cdf_config_id=CDF_CONFIG_ID)
+
+
+def _existing_cdf():
     try:
-        op.result()          # wait if this returns a long-running-op waiter; harmless otherwise
+        for c in w.postgres.list_cdf_configs(parent=parent):
+            if c.name.split("/")[-1] == CDF_CONFIG_ID:
+                return c
     except Exception:
         pass
-    print(f"✓ CDF feed requested: {PG_OPS_SCHEMA} → {UC_CATALOG}.{HISTORY_SCHEMA}  (id={CDF_CONFIG_ID})")
-except Exception as e:
-    msg = str(e)
-    if "already exists" in msg.lower() or "ALREADY_EXISTS" in msg:
-        print(f"✓ CDF feed already exists (id={CDF_CONFIG_ID})")
-    elif "permission" in msg.lower() or "PERMISSION_DENIED" in msg:
-        raise RuntimeError(
-            "Creating a Lakebase CDF feed needs CAN MANAGE on the Lakebase project (you have CAN USE). "
-            "Ask your facilitator to grant CAN MANAGE on the project, or to create the CDF feed for your "
-            f"'{PG_OPS_SCHEMA}' schema → {UC_CATALOG}.{HISTORY_SCHEMA}. See README / FACILITATOR.md."
-        ) from e
-    else:
+    return None
+
+
+_ex = _existing_cdf()
+# A feed with this id may already exist but point at a DIFFERENT destination (e.g. you re-ran with a
+# different catalog). The id is fixed, so detect the mismatch and replace it rather than silently
+# keeping the old feed (whose history tables would land in the wrong schema).
+if _ex and (_ex.catalog != UC_CATALOG or _ex.schema != HISTORY_SCHEMA or _ex.postgres_schema != PG_OPS_SCHEMA):
+    print(f"↪ replacing existing CDF feed ({_ex.catalog}.{_ex.schema}) → ({UC_CATALOG}.{HISTORY_SCHEMA})")
+    w.postgres.delete_cdf_config(name=_ex.name)
+    _ex = None
+if _ex:
+    print(f"✓ CDF feed already exists (id={CDF_CONFIG_ID}) → {UC_CATALOG}.{HISTORY_SCHEMA}")
+else:
+    try:
+        w.postgres.create_cdf_config(parent=parent, cdf_config=cfg, cdf_config_id=CDF_CONFIG_ID)
+        print(f"✓ CDF feed created: {PG_OPS_SCHEMA} → {UC_CATALOG}.{HISTORY_SCHEMA}  (id={CDF_CONFIG_ID})")
+    except Exception as e:
+        msg = str(e)
+        if "default storage" in msg.lower():
+            raise RuntimeError(
+                f"Lakebase CDF needs a catalog backed by EXTERNAL storage, but '{UC_CATALOG}' uses "
+                "default (metastore-managed) storage. A `storage_root` alone isn't enough — it must be an "
+                "explicit external location. Point SHARED_CATALOG at an external-location catalog. "
+                "See README / FACILITATOR.md.") from e
+        if "permission" in msg.lower() or "PERMISSION_DENIED" in msg:
+            raise RuntimeError(
+                "Creating a Lakebase CDF feed needs CAN MANAGE on the Lakebase project (you have CAN USE). "
+                "Ask your facilitator to grant CAN MANAGE on the project, or to create the CDF feed for "
+                f"your '{PG_OPS_SCHEMA}' schema → {UC_CATALOG}.{HISTORY_SCHEMA}. See FACILITATOR.md.") from e
         raise
 
 # COMMAND ----------
@@ -251,30 +277,33 @@ from databricks.sdk.service.pipelines import PipelineLibrary, NotebookLibrary
 
 PIPELINE_NAME = f"cm-scd1-{_sanitize(user_email)}"
 
+# Full desired spec — used for BOTH create and update, so a pipeline that already exists (e.g. from a
+# prior run or an older version of this lab) is brought in line with the current catalog/schema/config
+# rather than silently reused with a stale target.
+_pl = dict(
+    name=PIPELINE_NAME,
+    serverless=True,
+    catalog=UC_CATALOG,          # UC target catalog
+    schema=SCD_SCHEMA,           # UC target schema (positions_current / limits_current land here)
+    photon=True,
+    continuous=False,
+    development=True,
+    libraries=[PipelineLibrary(notebook=NotebookLibrary(path=PIPELINE_PATH))],
+    configuration={"cm.catalog": UC_CATALOG, "cm.history_schema": HISTORY_SCHEMA},
+)
 existing = next((p for p in w.pipelines.list_pipelines() if p.name == PIPELINE_NAME), None)
 if existing:
     pipeline_id = existing.pipeline_id
-    print(f"✓ pipeline exists: {PIPELINE_NAME} ({pipeline_id})")
+    w.pipelines.update(pipeline_id=pipeline_id, **_pl)   # refresh spec to the current config
+    print(f"✓ pipeline updated: {PIPELINE_NAME} ({pipeline_id})")
 else:
-    created = w.pipelines.create(
-        name=PIPELINE_NAME,
-        serverless=True,
-        catalog=UC_CATALOG,          # UC target catalog
-        schema=SCD_SCHEMA,           # UC target schema (positions_current / limits_current land here)
-        photon=True,
-        continuous=False,
-        development=True,
-        libraries=[PipelineLibrary(notebook=NotebookLibrary(path=PIPELINE_PATH))],
-        # tell the pipeline where the CDF history tables live
-        configuration={"cm.catalog": UC_CATALOG, "cm.history_schema": HISTORY_SCHEMA},
-    )
-    pipeline_id = created.pipeline_id
+    pipeline_id = w.pipelines.create(**_pl).pipeline_id
     print(f"✓ pipeline created: {PIPELINE_NAME} ({pipeline_id})")
 
 # Trigger one update and wait for it to finish.
 upd = w.pipelines.start_update(pipeline_id=pipeline_id, full_refresh=False)
 print(f"Started update {getattr(upd, 'update_id', '')} — waiting ...")
-# ⚠ VALIDATE: helper name for waiting varies; poll get_update state if wait_get_pipeline_* differs.
+state = ""
 for _ in range(60):
     ev = w.pipelines.get_update(pipeline_id=pipeline_id, update_id=upd.update_id)
     state = str(getattr(getattr(ev, "update", None), "state", "") or getattr(ev, "state", "")).upper()
@@ -282,6 +311,11 @@ for _ in range(60):
     if any(s in state for s in ("COMPLETED", "FAILED", "CANCELED")):
         break
     time.sleep(20)
+# Fail loudly if the pipeline didn't finish cleanly — otherwise the verify step below just reports a
+# confusing "table not found". Check the pipeline's events in the UI for the underlying error.
+if "COMPLETED" not in state:
+    raise RuntimeError(f"DLT pipeline update ended in state {state!r} (not COMPLETED). "
+                       f"Open the pipeline '{PIPELINE_NAME}' ({pipeline_id}) to see the error.")
 
 # COMMAND ----------
 

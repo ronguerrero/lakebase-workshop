@@ -28,7 +28,7 @@ group. The reference solution notebook in each folder is the validated version t
 | **Model Serving — enabled in the workspace** | Ex4 Feature Serving endpoint | Attendees create the endpoint using their workspace access — there is **no separate "create serving endpoint" entitlement** to grant; just have Model Serving enabled in the workspace/region. |
 | **Change Data Feed** | Ex6 (Delta→Lakebase sync) + Ex4 offline feature table (publish prerequisite) | GA (the notebooks set it). |
 | **Lakebase synced tables** (reverse ETL) | Ex6 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
-| **Lakebase Change Data Feed (CDF)** | Ex7 — auto-materializes Lakebase changes into `cm_<user>.lb_*_history` Delta tables (`w.postgres.create_cdf_config`) | **Public Preview.** Two facilitator-facing requirements: **(a)** the shared UC catalog must **not use default storage** (else the history tables never appear), and **(b)** creating a feed needs **CAN MANAGE on the Lakebase project** — see the CDF note under Permissions. |
+| **Lakebase Change Data Feed (CDF)** | Ex7 — auto-materializes Lakebase changes into `cm_<user>.lb_*_history` Delta tables (`w.postgres.create_cdf_config`) | **Public Preview** (validated live). Two facilitator-facing requirements: **(a)** the shared UC catalog must be backed by an **explicit external location** — a catalog on the metastore's **default managed storage is rejected** (`"not supported for catalogs using Default Storage"`), *even though it reports a `storage_root`*; and **(b)** creating a feed needs **CAN MANAGE on the Lakebase project** — see the CDF note under Permissions. |
 | **Lakeflow / DLT (serverless)** — writes into the attendee's `cm_<user>` schema | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Attendees create the pipeline using their workspace access — there is **no separate "create pipeline" entitlement** to grant; just have serverless DLT enabled. |
 | **`pgvector` extension** | Ex8 — vector store in Lakebase (`CREATE EXTENSION vector`) | Normally available in Lakebase; the notebook enables it. If it errors, confirm availability for the project. |
 | **FM embeddings endpoint** — a served pay-per-token model (e.g. `databricks-gte-large-en`) | Ex8 — embeds the earnings-call chunks | Must be served in your region (list with `w.serving_endpoints.list()`). System endpoint — no per-user grant. Swap the name in the notebook if yours differs. |
@@ -74,13 +74,15 @@ Simplest: put the attendees in one workspace group and grant that group.
   using their **workspace access** — there is **no distinct "create pipeline" / "create serving
   endpoint" entitlement** to grant. Being a workspace user (plus the toggles above) is what enables it.
 
-> **Ex7 Lakebase CDF needs two things (Public Preview).** (1) The shared UC catalog must **not use
-> default storage** — CDF writes the `lb_*_history` Delta tables there, and it silently produces nothing
-> on a default-storage catalog. Use a catalog with an explicit storage location. (2) Creating a CDF feed
-> needs **CAN MANAGE on the Lakebase project**, but attendees get `CAN_USE`. Either bump attendees to
-> `CAN_MANAGE` (consistent with the shared-project "isolation by convention" model), or **pre-create the
-> CDF feed per attendee** yourself (map `cm_<user>_ops` → `<catalog>.cm_<user>`). The Ex7 notebook fails
-> with a clear message if the feed can't be created.
+> **Ex7 Lakebase CDF needs two things (Public Preview — both confirmed on a live run).** (1) The shared
+> UC catalog must be backed by an **explicit external location**. A catalog on the metastore's default
+> managed storage is **rejected** — `create_cdf_config` fails with *"Lakebase CDF is not supported for
+> catalogs using Default Storage"* — and note this is true **even if the catalog reports a `storage_root`**
+> (the metastore-managed root still counts as default storage). Point `SHARED_CATALOG` at a catalog
+> created with its own external location. (2) Creating a CDF feed needs **CAN MANAGE on the Lakebase
+> project**, but attendees get `CAN_USE`. Either bump attendees to `CAN_MANAGE` (consistent with the
+> shared-project "isolation by convention" model), or **pre-create the CDF feed per attendee** yourself
+> (map `cm_<user>_ops` → `<catalog>.cm_<user>`). The Ex7 notebook fails with a clear message in both cases.
 
 > **No account admin needed** — a workspace admin can run the whole workshop. Projects are created
 > and granted per-workspace; the CM data is synthetic and self-generated.

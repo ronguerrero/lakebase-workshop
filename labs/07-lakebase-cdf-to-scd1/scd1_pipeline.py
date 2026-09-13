@@ -19,8 +19,12 @@ from pyspark.sql import functions as F
 CATALOG = spark.conf.get("cm.catalog")
 HISTORY_SCHEMA = spark.conf.get("cm.history_schema")
 
-# CDF bookkeeping columns (present on every history row, not part of the business record).
-_CDF_COLS = ["_pg_change_type", "_pg_lsn", "_pg_xid", "_timestamp", "_sort_by"]
+# Of the CDF bookkeeping columns we keep only `_pg_change_type` (delete detection) and `_sort_by`
+# (ordering) into the intermediate view; `except_column_list` then strips those two from the target.
+# We DROP `_timestamp` (and `_pg_lsn`/`_pg_xid`) in the source view: `_timestamp` is a TIMESTAMP_NTZ
+# column, which would otherwise force the `timestampNtz` Delta table feature onto the streaming table
+# and fail the pipeline.
+_DROP_COLS = ["_timestamp", "_pg_lsn", "_pg_xid"]
 
 
 def scd1_from_cdf(entity: str, key: str):
@@ -34,6 +38,7 @@ def scd1_from_cdf(entity: str, key: str):
                comment=f"Streaming read of Lakebase CDF history for {entity}")
     def _src(entity=entity):
         return (spark.readStream.table(f"{CATALOG}.{HISTORY_SCHEMA}.lb_{entity}_history")
+                .drop(*_DROP_COLS)
                 .filter(F.col("_pg_change_type") != "update_preimage"))
 
     dlt.create_streaming_table(
@@ -51,7 +56,7 @@ def scd1_from_cdf(entity: str, key: str):
         keys=[key],
         sequence_by=F.col("_sort_by"),                     # CDF monotonic order across all changes
         apply_as_deletes=F.expr("_pg_change_type = 'delete'"),
-        except_column_list=_CDF_COLS,                       # keep only the business columns
+        except_column_list=["_pg_change_type", "_sort_by"],  # keep only the business columns
         stored_as_scd_type=1,                               # SCD1: latest version per key, no history
     )
 
