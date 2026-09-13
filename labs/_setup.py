@@ -30,16 +30,18 @@ def _sanitize(email):
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9-]", "-", name.lower())).strip("-")
 
 
-# ── The shared Lakebase project (REQUIRED) ──────────────────────────────────
+# ── The shared Lakebase project ─────────────────────────────────────────────
 # All participants connect to ONE facilitator-created Lakebase project and each works
 # on their OWN branch of it (see scripts/facilitator_setup.py and FACILITATOR.md).
 #
-# ►► SET THIS ◄◄ — the facilitator sets SHARED_PROJECT_ID below to the project they
-# created (e.g. "cibc-cm-workshop"); attendees can instead export the env var
-# LAKEBASE_SHARED_PROJECT_ID (which wins over the constant). If neither is set, the
-# helpers below fail fast with a clear message rather than hanging on a project that
-# doesn't exist.
-SHARED_PROJECT_ID = ""   # e.g. "cibc-cm-workshop"  (facilitator sets this)
+# ►► ATTENDEE: SET THIS ONE LINE ◄◄
+# Set SHARED_PROJECT_ID to your facilitator's project id (e.g. "cibc-cm-workshop"). Edit it
+# once in your OWN clone — no commit/push and no repo access needed — and EVERY exercise
+# inherits it, because they all `%run ../_setup`. Enter the BASE id even if the room was
+# split across projects; you're auto-routed to the project that actually holds your branch.
+# (Alternatively export LAKEBASE_SHARED_PROJECT_ID, which wins over the constant.)
+# If it's unset or wrong, the helpers fail fast with a clear message — no 10-minute hang.
+SHARED_PROJECT_ID = ""   # ◄◄ set me, e.g. "cibc-cm-workshop"
 
 PROJECT_ID = (os.environ.get("LAKEBASE_SHARED_PROJECT_ID", "").strip()
               or SHARED_PROJECT_ID).strip()
@@ -62,8 +64,9 @@ _READY_ENDPOINT_STATES = ("ACTIVE", "IDLE", "DEGRADED")
 
 
 _SETUP_HINT = (
-    "Set SHARED_PROJECT_ID in labs/_setup (the '►► SET THIS ◄◄' line) — or export the "
-    "LAKEBASE_SHARED_PROJECT_ID env var — to the Lakebase project your facilitator created. "
+    "Set SHARED_PROJECT_ID in labs/_setup (the '◄◄ set me' line) to your facilitator's Lakebase "
+    "project id — one line, once, in your clone — or export LAKEBASE_SHARED_PROJECT_ID. Enter the "
+    "base id even if the room was split; you'll be routed to the project that holds your branch. "
     "See docs/facilitator.html / FACILITATOR.md."
 )
 

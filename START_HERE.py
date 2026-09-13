@@ -12,6 +12,11 @@
 # MAGIC | **~5h** · seven exercises | **Serverless** · no cluster |
 # MAGIC | Hero client · **Air Canada (CL-AC)** | You work on **your own branch** of a shared project |
 # MAGIC
+# MAGIC **Before you start (once):** open <a href="$./labs/_setup">labs/_setup</a> and set
+# MAGIC `SHARED_PROJECT_ID` to your facilitator's Lakebase project id (e.g. `"cibc-cm-workshop"`) — one
+# MAGIC line, no commit needed, and every exercise inherits it. Enter the base id even if the room was
+# MAGIC split across projects; you're auto-routed to the project that holds your branch.
+# MAGIC
 # MAGIC **How to use this guide:** the links below open each exercise notebook in your clone (nothing to run),
 # MAGIC and the architecture diagrams are inline. Work the exercises in order 1 → 7 — open each notebook and **Run all**.
 
