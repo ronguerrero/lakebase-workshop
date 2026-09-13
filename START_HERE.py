@@ -13,8 +13,7 @@
 # MAGIC | Hero client · **Air Canada (CL-AC)** | You work on **your own branch** of a shared project |
 # MAGIC
 # MAGIC **How to use this guide:** the links below open each exercise notebook in your clone (nothing to run),
-# MAGIC and the architecture diagrams are inline. Work the exercises in order 1 → 7. Each has two build paths: **run the reference notebook**, or **paste the Genie Code
-# MAGIC prompt** (Databricks Assistant, Agent Mode) and let it write the same code.
+# MAGIC and the architecture diagrams are inline. Work the exercises in order 1 → 7 — open each notebook and **Run all**.
 
 
 # COMMAND ----------
@@ -58,7 +57,7 @@
 # MAGIC CREATE SCHEMA IF NOT EXISTS cm_<you>;   -- underscores, not hyphens
 # MAGIC ```
 # MAGIC
-# MAGIC **Then — watch your branch autoscale under load.** Run `Autoscale_Load.py` (link above): it fires a
+# MAGIC **Then — watch your branch autoscale under load.** Run <a href="$./labs/01-getting-to-know-lakebase/Autoscale_Load">Autoscale_Load</a>: it fires a
 # MAGIC concurrent workload at your branch; compute climbs from the minimum toward its max, then settles
 # MAGIC back to zero when the load stops. Open the Lakebase **Monitoring** graph alongside it to see the CU
 # MAGIC curve (the live CU number isn't in the API, so the notebook polls endpoint *state*).
@@ -85,7 +84,7 @@
 # MAGIC schema (`clients, instruments, market_prices, positions, trades`), with Air Canada seeded as a
 # MAGIC large WTI + heating-oil (energy) book.
 # MAGIC
-# MAGIC **▶ Run the notebook** — `labs/02-authentication/Connect_And_Generate_Data.py` (Run all). Connect
+# MAGIC **▶ Run the notebook** — <a href="$./labs/02-authentication/Connect_And_Generate_Data">Connect_And_Generate_Data</a> (Run all). Connect
 # MAGIC with **keyword args, not a URL** (OAuth tokens break URL parsing):
 # MAGIC
 # MAGIC ```python
@@ -94,15 +93,6 @@
 # MAGIC conn = get_connection()        # OAuth cred · sslmode=require · search_path = your schema
 # MAGIC # … create the 5 tables and INSERT deterministic rows (seed 1867) …
 # MAGIC ```
-# MAGIC
-# MAGIC **✨ Generate with Genie** (full prompt in `labs/02-authentication/README.md`):
-# MAGIC
-# MAGIC > Generate a Databricks notebook that `%run ../_setup`, opens `get_connection()`, and loads a
-# MAGIC > synthetic CIBC Capital Markets dataset into my Postgres schema: five tables (`clients`,
-# MAGIC > `instruments`, `market_prices`, `positions`, `trades`) with the workshop data-model columns,
-# MAGIC > deterministic with `random.Random(1867)`, 9 Canadian issuers with coverage officers, and Air
-# MAGIC > Canada (`CL-AC`) seeded with a large WTI + heating-oil long so its energy exposure dominates.
-# MAGIC
 # MAGIC Part B (optional): connect an external tool — see `labs/02-authentication/VSCODE_CONNECT.md`.
 # MAGIC
 # MAGIC > **✓ Check** — 9 clients, 18 instruments, 540 prices, ~76 positions, 600 trades; Air Canada's
@@ -131,7 +121,7 @@
 
 
 # MAGIC %md
-# MAGIC **▶ Run the notebook** — `labs/03-data-api/Data_API.py`: it reads your branch over the REST Data API
+# MAGIC **▶ Run the notebook** — <a href="$./labs/03-data-api/Data_API">Data_API</a>: it reads your branch over the REST Data API
 # MAGIC and over JDBC (Spark JDBC read), then compares. The REST base URL is auto-discovered from
 # MAGIC `get_data_api().status.url`; if the Data API isn't enabled the notebook skips REST gracefully and
 # MAGIC JDBC still runs.
@@ -174,8 +164,8 @@
 # MAGIC > min the first time) and the Feature Serving endpoint takes ~10–15 min to provision. Both are fixed
 # MAGIC > overhead regardless of data size — kick them off and talk through the architecture above.
 # MAGIC
-# MAGIC **▶ Run the notebook** — `Feature_Store.py` first (creates the endpoint), then
-# MAGIC `Coverage_Desk_Chatbot.py`. The heart of it:
+# MAGIC **▶ Run the notebook** — <a href="$./labs/04-online-feature-store/Feature_Store">Feature_Store</a> first (creates the endpoint), then
+# MAGIC <a href="$./labs/04-online-feature-store/Coverage_Desk_Chatbot">Coverage_Desk_Chatbot</a>. The heart of it:
 # MAGIC
 # MAGIC ```python
 # MAGIC fe.create_table(name=FEATURE_TABLE, primary_keys=["client_id"], df=features)
@@ -198,12 +188,6 @@
 # MAGIC     return get_deploy_client("databricks").predict(endpoint=EP,
 # MAGIC         inputs={"dataframe_records":[{"client_id": resolve(client)}]})
 # MAGIC ```
-# MAGIC
-# MAGIC **✨ Generate with Genie** — two prompts (full versions in `labs/04-online-feature-store/README.md`):
-# MAGIC build the feature store + publish to Lakebase + FeatureSpec + serving endpoint; then a LangChain
-# MAGIC assistant whose `@tool` calls that endpoint. Demo: *"What's Air Canada's risk profile and should I
-# MAGIC worry about their oil exposure?"*
-# MAGIC
 # MAGIC > **Why Feature Serving (not a raw Postgres read):** the documented agent pattern is a Feature
 # MAGIC > Serving endpoint queried with the MLflow deploy client — governed, versioned, monitored. So "tool
 # MAGIC > vs MLflow API" is a false choice: the tool *is* the MLflow call.
@@ -234,7 +218,7 @@
 
 
 # MAGIC %md
-# MAGIC **▶ Run the notebook** — `labs/05-agentic-memory/Agent_Memory.py`. Two Lakebase gotchas are baked in
+# MAGIC **▶ Run the notebook** — <a href="$./labs/05-agentic-memory/Agent_Memory">Agent_Memory</a>. Two Lakebase gotchas are baked in
 # MAGIC — connect with **keyword args (not a URL)**, and subclass `ChatDatabricks` to drop `temperature`
 # MAGIC (Claude endpoints reject it):
 # MAGIC
@@ -245,12 +229,6 @@
 # MAGIC checkpointer = PostgresSaver(conn); checkpointer.setup()   # makes the 4 tables
 # MAGIC agent = StateGraph(MessagesState)...compile(checkpointer=checkpointer)
 # MAGIC ```
-# MAGIC
-# MAGIC **✨ Generate with Genie** (full prompt in the README): a LangGraph agent with persistent memory in
-# MAGIC Lakebase — psycopg keyword args, `ChatDatabricks` subclassed to pop `temperature`, `PostgresSaver` +
-# MAGIC `.setup()`, a one-node `StateGraph(MessagesState)`, proving memory across two turns on one
-# MAGIC `thread_id` and inspecting the `checkpoint%` tables.
-# MAGIC
 # MAGIC > **✓ Check** — Turn 2 recalls what Turn 1 said on the same `thread_id`; the four `checkpoint%`
 # MAGIC > tables exist; deserializing a blob finds the remembered client.
 # MAGIC
@@ -280,14 +258,9 @@
 
 
 # MAGIC %md
-# MAGIC **▶ Run the notebook** — `labs/06-delta-to-lakebase-sync/Delta_To_Lakebase.py`: builds the Delta
+# MAGIC **▶ Run the notebook** — <a href="$./labs/06-delta-to-lakebase-sync/Delta_To_Lakebase">Delta_To_Lakebase</a>: builds the Delta
 # MAGIC source (PK + CDF), creates a Lakebase **synced table** into your branch, verifies the row count,
 # MAGIC then updates a row and re-syncs. (~minutes to provision the sync pipeline the first time.)
-# MAGIC
-# MAGIC **✨ Generate with Genie** (full prompt in the README): create a Delta table with PK + CDF, then a
-# MAGIC Lakebase synced table (`lb_client_reference`) into your branch; verify over psycopg, update a row
-# MAGIC and re-sync. Explain SNAPSHOT / TRIGGERED / CONTINUOUS.
-# MAGIC
 # MAGIC > **✓ Check** — `lb_client_reference` exists on your branch with the same rows as the Delta source;
 # MAGIC > a Delta update propagates on re-sync (Air Canada's limit → CAD 300,000,000).
 
@@ -318,14 +291,9 @@
 # MAGIC > watermark/incremental extract of the `lb_*` tables into bronze, then DLT AUTO CDC for SCD1. (If
 # MAGIC > your workspace gets native Lakebase→Delta CDC, swap the extract step.)
 # MAGIC
-# MAGIC **▶ Run the notebook + pipeline** — `labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py` (seeds +
-# MAGIC mutates `lb_*`, extracts to bronze, creates the Lakeflow pipeline from `scd1_pipeline.py`) and
+# MAGIC **▶ Run the notebook + pipeline** — <a href="$./labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1">Lakebase_CDF_To_SCD1</a> (seeds +
+# MAGIC mutates `lb_*`, extracts to bronze, creates the Lakeflow pipeline from <a href="$./labs/07-lakebase-cdf-to-scd1/scd1_pipeline">scd1_pipeline</a>) and
 # MAGIC confirm each key shows only its latest value.
-# MAGIC
-# MAGIC **✨ Generate with Genie** (full prompt in the README): extract changed `lb_*` rows by `updated_at`
-# MAGIC watermark into append-only bronze Delta, then a Lakeflow DLT AUTO CDC flow with
-# MAGIC `stored_as_scd_type=1` keyed by PK → current-state Delta; prove one latest row per key.
-# MAGIC
 # MAGIC > **✓ Check** — after mutating a position/limit, the SCD1 target has exactly one row per key showing
 # MAGIC > the latest value (position 1 → net_qty 900).
 # MAGIC
