@@ -120,7 +120,7 @@
     <div class="sh"><span class="snum" style="background:var(--lakebase)">◆</span><h2>The model: one project, a branch per attendee</h2></div>
     <p>All attendees share <b>one Lakebase project</b>, but each works on their <b>own branch</b> — a
       Git-like, copy-on-write, fully-isolated clone of the project with its own compute endpoint. The
-      exercises connect to the attendee's own branch automatically (<code>labs/_setup.py</code> derives
+      exercises connect to the attendee's own branch automatically (<a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a> derives
       the branch id from their username). Nobody steps on anyone else's data, and each person can
       freely create, load, and even break things on their branch.</p>
 
@@ -242,7 +242,7 @@
 
     <h3>Point attendees at the project</h3>
     <p>Attendees set <b>one</b> env var (or the <code>SHARED_PROJECT_ID</code> constant in
-      <code>labs/_setup.py</code>). Their branch is derived from their username automatically:</p>
+      <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a>). Their branch is derived from their username automatically:</p>
     <pre><code><span class="c"># each attendee, once, in their workspace:</span>
 LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
   </section>

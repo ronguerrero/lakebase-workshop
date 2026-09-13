@@ -205,7 +205,7 @@ CREATE SCHEMA IF NOT EXISTS cm_&lt;you&gt;;</code></pre>
 
     <h3>Step 6 — watch your branch autoscale under load</h3>
     <p>Market open: a burst of pricing/limit queries hits your book. Run
-      <code>Autoscale_Load.py</code> — it fires a concurrent workload at <b>your branch</b> and its
+      <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex1-getting-to-know-lakebase/Autoscale_Load.py" target="_blank" rel="noopener"><code>Autoscale_Load.py</code></a> — it fires a concurrent workload at <b>your branch</b> and its
       compute scales up from the minimum toward its max, then settles back to zero when the load stops.
       You pay only for what you use.</p>
     <figure>
@@ -254,7 +254,7 @@ CREATE SCHEMA IF NOT EXISTS cm_&lt;you&gt;;</code></pre>
 
     <div class="path-notebook">
       <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Open <code>labs/ex2-authentication/Connect_And_Generate_Data.py</code> on serverless and
+      <p>Open <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex2-authentication/Connect_And_Generate_Data.py" target="_blank" rel="noopener"><code>labs/ex2-authentication/Connect_And_Generate_Data.py</code></a> on serverless and
         <b>Run all</b>. The connection comes from the shared helper — connect with <b>keyword args, not
         a URL</b> (OAuth tokens break URL parsing):</p>
       <pre><code><span class="k">%pip install</span> "psycopg[binary]&gt;=3.1.0" --quiet
@@ -266,7 +266,7 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
     <div class="path-genie">
       <div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
       <p>Open a fresh Genie Code chat on a serverless notebook and paste this (the full verbatim prompt
-        is in the exercise <code>README.md</code>):</p>
+        is in the exercise <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex2-authentication/README.md" target="_blank" rel="noopener"><code>README.md</code></a>):</p>
       <div class="prompt"><span class="lbl">Genie Code prompt</span>
         Generate a Databricks notebook that <code>%run ../_setup</code>, opens <code>get_connection()</code>,
         and loads a synthetic CIBC Capital Markets dataset into my Postgres schema: five tables
@@ -280,7 +280,7 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
     <div class="note check"><b>✓ Check</b> — 9 clients, 18 instruments, 540 prices, ~76 positions, 600
       trades; Air Canada's gross notional is dominated by WTI + heating oil (~$32M of ~$33M).</div>
     <p style="font-size:.95rem;color:var(--muted)">Part B (optional): connect an external tool — see
-      <code>labs/ex2-authentication/VSCODE_CONNECT.md</code> for the native-password path.</p>
+      <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex2-authentication/VSCODE_CONNECT.md" target="_blank" rel="noopener"><code>labs/ex2-authentication/VSCODE_CONNECT.md</code></a> for the native-password path.</p>
   </section>
 
   <!-- ============ DATA API ============ -->
@@ -321,7 +321,7 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
       <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>access path</span></div>
     </figure>
     <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <code>labs/data-api/Data_API.py</code> — it hits your branch over the REST Data API and over
+      <p>Run <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/data-api/Data_API.py" target="_blank" rel="noopener"><code>labs/data-api/Data_API.py</code></a> — it hits your branch over the REST Data API and over
         JDBC (Spark JDBC read), then compares. <em>The REST base URL is auto-discovered from
         <code>get_data_api().status.url</code>; if the Data API isn't enabled on the project the notebook
         skips REST gracefully and the JDBC path still runs.</em></p></div>
@@ -370,7 +370,7 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
       <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>Delta source</span></div>
     </figure>
     <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <code>labs/delta-to-lakebase-sync/Delta_To_Lakebase.py</code> — builds the Delta source
+      <p>Run <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/delta-to-lakebase-sync/Delta_To_Lakebase.py" target="_blank" rel="noopener"><code>labs/delta-to-lakebase-sync/Delta_To_Lakebase.py</code></a> — builds the Delta source
         (PK + CDF), creates a Lakebase <b>synced table</b> into your branch, verifies the row count,
         then updates a row and re-syncs. (~minutes to provision the sync pipeline the first time.)</p></div>
     <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
@@ -418,9 +418,9 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
       the GA pattern — a watermark/incremental extract of the <code>lb_*</code> tables into bronze,
       then DLT AUTO CDC for SCD1. (If your workspace gets native Lakebase→Delta CDC, swap the extract step.)</div>
     <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook + pipeline</div>
-      <p>Run <code>labs/lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py</code> (seeds + mutates
+      <p>Run <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py" target="_blank" rel="noopener"><code>labs/lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py</code></a> (seeds + mutates
         <code>lb_*</code>, extracts to bronze, creates the Lakeflow pipeline from
-        <code>scd1_pipeline.py</code>) and confirm each key shows only its latest value.</p></div>
+        <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/lakebase-cdf-to-scd1/scd1_pipeline.py" target="_blank" rel="noopener"><code>scd1_pipeline.py</code></a>) and confirm each key shows only its latest value.</p></div>
     <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
       <div class="prompt"><span class="lbl">Genie Code prompt</span>Extract changed rows from my Lakebase
         <code>lb_*</code> tables (by <code>updated_at</code> watermark) into an append-only bronze Delta
@@ -520,8 +520,8 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
 
     <div class="path-notebook">
       <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <code>Feature_Store.py</code> first (it creates the endpoint), then
-        <code>Coverage_Desk_Chatbot.py</code>. The heart of it:</p>
+      <p>Run <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex3-online-feature-store/Feature_Store.py" target="_blank" rel="noopener"><code>Feature_Store.py</code></a> first (it creates the endpoint), then
+        <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex3-online-feature-store/Coverage_Desk_Chatbot.py" target="_blank" rel="noopener"><code>Coverage_Desk_Chatbot.py</code></a>. The heart of it:</p>
       <pre><code>fe.create_table(name=FEATURE_TABLE, primary_keys=["client_id"], df=features)
 <span class="c"># enable CDF, then publish into your Lakebase project</span>
 fe.publish_table(online_store=fe.get_online_store(name=PROJECT_ID),
@@ -541,7 +541,7 @@ def lookup_client_risk(client: str) -&gt; str:
     </div>
     <div class="path-genie">
       <div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
-      <p>Two prompts (fresh chat each; full versions in the exercise <code>README.md</code>):</p>
+      <p>Two prompts (fresh chat each; full versions in the exercise <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex3-online-feature-store/README.md" target="_blank" rel="noopener"><code>README.md</code></a>):</p>
       <div class="prompt"><span class="lbl">Genie — feature store</span>
         Build a capital-markets online feature store: a Delta table
         <code>client_risk_features</code> (one row per client, PK + CDF) with exposure / PnL /
@@ -640,7 +640,7 @@ def lookup_client_risk(client: str) -&gt; str:
 
     <div class="path-notebook">
       <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <code>labs/ex4-agentic-memory/Agent_Memory.py</code>. Two Lakebase gotchas are baked in —
+      <p>Run <a href="https://github.com/ronguerrero/lakebase-workshop/blob/main/labs/ex4-agentic-memory/Agent_Memory.py" target="_blank" rel="noopener"><code>labs/ex4-agentic-memory/Agent_Memory.py</code></a>. Two Lakebase gotchas are baked in —
         connect with keyword args (not a URL), and subclass <code>ChatDatabricks</code> to drop
         <code>temperature</code> (Claude endpoints reject it):</p>
       <pre><code>conn = psycopg.connect(host=host, dbname="databricks_postgres",
