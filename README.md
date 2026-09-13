@@ -56,6 +56,10 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
    script splits them across `cibc-cm-workshop-1`, `-2`, …. Add `--branch-max-cu 4` to give each
    branch an autoscaling envelope (min 1 → max 4 CU) so the Exercise 1 load demo shows scaling.
    Add `--dry-run` first to see exactly what it will do. The script is idempotent.
+
+   **Prefer to run it in Databricks?** Import the repo and open **`scripts/facilitator_setup_notebook`**
+   — same logic with widgets and your notebook identity (no CLI/profile needed). Fill the widgets
+   (at least the attendee emails), keep `dry_run = true` for a preview, then set it `false`.
 3. **Finish the workspace/UC grants** the script prints (serverless warehouse `CAN USE`,
    Foundation Model endpoint `CAN QUERY`, ability to create serving endpoints) — see
    `FACILITATOR.md → Permissions`.
@@ -90,7 +94,8 @@ Feature Serving) and **serverless DLT pipelines** (SCD1 exercise). Full checklis
 
 ```
 START_HERE.py                    run-first notebook guide: prints live links to every exercise + walkthrough
-scripts/facilitator_setup.py     create shared Lakebase project + a branch per participant (facilitator)
+scripts/facilitator_setup.py     create shared Lakebase project + a branch per participant (facilitator CLI)
+scripts/facilitator_setup_notebook.py   same setup, runnable in Databricks with widgets (no CLI needed)
 labs/_setup.py                   shared connection helper (%run by each exercise)
 labs/01-getting-to-know-lakebase/   README + Autoscale_Load.py (drive load, watch the branch scale)
 labs/02-authentication/             Connect_And_Generate_Data.py + VSCODE_CONNECT.md

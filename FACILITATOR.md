@@ -206,4 +206,6 @@ is already serverless; the cost is pipeline orchestration + initial snapshot, wh
 ## Get the workshop into the customer's workspace
 Import this repo folder: `databricks workspace import-dir . "/Workspace/Users/<them>/cibc-cm-lakebase-workshop"`
 (or Repos → Add Repo from Git). The `.py` files import as runnable notebooks; nothing installs
-locally. Then run `scripts/facilitator_setup.py` from a CLI authenticated to their workspace.
+locally. Then run `scripts/facilitator_setup.py` from a CLI authenticated to their workspace — **or,
+entirely in Databricks, open `scripts/facilitator_setup_notebook`** and run it (widgets + your notebook
+identity, no CLI/profile needed; keep `dry_run = true` for a preview first).

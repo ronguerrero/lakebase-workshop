@@ -310,33 +310,28 @@ def chunk(lst, n):
     return [lst[i:i + n] for i in range(0, len(lst), n)] or [[]]
 
 
-# ── main ──────────────────────────────────────────────────────────────────
-def main() -> int:
-    ap = argparse.ArgumentParser(description="Facilitator setup — shared project, branch per attendee.")
-    ap.add_argument("-p", "--profile", default=None)
-    ap.add_argument("--project-id", default="cibc-cm-workshop", help="Base shared-project id")
-    ap.add_argument("--pg-version", default="17")
-    ap.add_argument("--grant-user", action="append", default=[], metavar="EMAIL",
-                    help="Attendee (repeatable) — one branch is created per attendee")
-    ap.add_argument("--grant-group", action="append", default=[], metavar="GROUP",
-                    help="Group granted project access (branches still need --grant-user)")
-    ap.add_argument("--max-branches-per-project", type=int, default=18,
-                    help="Split attendees across extra projects past this many branches/project")
-    ap.add_argument("--branch-max-cu", type=int, default=4,
-                    help="Max autoscaling CU per attendee branch endpoint (min is 1) — lets the Ex1 load demo show scaling")
-    ap.add_argument("--app-name", default=None)
-    ap.add_argument("--uc-catalog", default=None)
-    ap.add_argument("--dry-run", action="store_true")
-    args = ap.parse_args()
+# ── orchestration (callable from the CLI or a Databricks notebook) ──────────
+def run(*, profile=None, project_id="cibc-cm-workshop", pg_version="17", grant_users=None,
+        grant_groups=None, max_branches_per_project=18, branch_max_cu=4, app_name=None,
+        uc_catalog=None, dry_run=False):
+    """Run the full facilitator setup. Called by the CLI (main) and by the notebook
+    scripts/facilitator_setup_notebook. profile=None → ambient auth (WorkspaceClient()), which is
+    what a Databricks notebook / runtime uses; pass a CLI profile name to read ~/.databrickscfg."""
+    import types
+    args = types.SimpleNamespace(
+        profile=profile, project_id=project_id, pg_version=pg_version,
+        grant_user=list(grant_users or []), grant_group=list(grant_groups or []),
+        max_branches_per_project=max_branches_per_project, branch_max_cu=branch_max_cu,
+        app_name=app_name, uc_catalog=uc_catalog, dry_run=bool(dry_run))
 
     from databricks.sdk import WorkspaceClient
     from databricks.sdk.core import Config
-    profile = args.profile or "DEFAULT"
-    w = WorkspaceClient(config=Config(profile=profile, http_timeout_seconds=120))
+    w = (WorkspaceClient(config=Config(profile=args.profile, http_timeout_seconds=120))
+         if args.profile else WorkspaceClient())
     try:
         me = w.current_user.me().user_name
     except Exception as e:
-        log(f"✗ Could not authenticate with profile '{profile}': {e}")
+        log(f"✗ Could not authenticate ({'profile ' + args.profile if args.profile else 'ambient auth'}): {e}")
         return 1
 
     app_sp = None
@@ -358,7 +353,7 @@ def main() -> int:
     log("=" * 68)
     log("  CIBC CM — LAKEBASE WORKSHOP FACILITATOR SETUP  (shared project · branch per attendee)")
     log("=" * 68)
-    log(f"  Profile:     {profile}   Workspace: {(w.config.host or '').rstrip('/')}")
+    log(f"  Auth:        {'profile ' + args.profile if args.profile else 'ambient (notebook/runtime)'}   Workspace: {(w.config.host or '').rstrip('/')}")
     log(f"  Run as:      {me}")
     log(f"  Attendees:   {len(attendees)}   Max branches/project: {maxb}   Projects: {n_projects}")
     log(f"  Dry run:     {args.dry_run}")
@@ -410,6 +405,30 @@ def main() -> int:
     log("")
     log("Full run-of-show + the optional extra-project step: docs/facilitator.html / FACILITATOR.md")
     return 0
+
+
+# ── CLI ─────────────────────────────────────────────────────────────────────
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Facilitator setup — shared project, branch per attendee.")
+    ap.add_argument("-p", "--profile", default=None, help="CLI profile; omit to use ambient auth")
+    ap.add_argument("--project-id", default="cibc-cm-workshop", help="Base shared-project id")
+    ap.add_argument("--pg-version", default="17")
+    ap.add_argument("--grant-user", action="append", default=[], metavar="EMAIL",
+                    help="Attendee (repeatable) — one branch is created per attendee")
+    ap.add_argument("--grant-group", action="append", default=[], metavar="GROUP",
+                    help="Group granted project access (branches still need --grant-user)")
+    ap.add_argument("--max-branches-per-project", type=int, default=18,
+                    help="Split attendees across extra projects past this many branches/project")
+    ap.add_argument("--branch-max-cu", type=int, default=4,
+                    help="Max autoscaling CU per attendee branch endpoint (min is 1) — lets the Ex1 load demo show scaling")
+    ap.add_argument("--app-name", default=None)
+    ap.add_argument("--uc-catalog", default=None)
+    ap.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args()
+    return run(profile=a.profile, project_id=a.project_id, pg_version=a.pg_version,
+               grant_users=a.grant_user, grant_groups=a.grant_group,
+               max_branches_per_project=a.max_branches_per_project, branch_max_cu=a.branch_max_cu,
+               app_name=a.app_name, uc_catalog=a.uc_catalog, dry_run=a.dry_run)
 
 
 if __name__ == "__main__":
