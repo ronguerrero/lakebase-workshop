@@ -23,7 +23,7 @@ produce (already validated), so a facilitator can compare and unblock anyone.
 | 4 | **Online Feature Store + Chatbot** | `labs/04-online-feature-store/` | Client-risk features published to Lakebase, served via a Feature Serving endpoint; a LangChain "Coverage Desk Assistant" that looks them up via the MLflow deploy client |
 | 5 | **Agentic Memory** | `labs/05-agentic-memory/` | A LangGraph agent with persistent conversation memory in Lakebase Postgres |
 | 6 | **Delta → Lakebase sync** | `labs/06-delta-to-lakebase-sync/` | Reverse-ETL a curated Delta table into your branch as an `lb_*` synced table |
-| 7 | **Lakebase → Delta (SCD Type 1)** | `labs/07-lakebase-cdf-to-scd1/` | Capture `lb_*` changes into bronze Delta, then a Lakeflow AUTO CDC pipeline applies SCD1 |
+| 7 | **Lakebase → Delta (SCD Type 1) via CDF** | `labs/07-lakebase-cdf-to-scd1/` | Turn on **Lakebase Change Data Feed** (auto-creates `lb_*_history` Delta), then a Lakeflow AUTO CDC pipeline applies SCD1 |
 
 Exercise numbers match the folder names (`labs/0N-…`) and the recommended flow in `docs/attendee.html`
 / `PROMPT_RUNBOOK.md`.
@@ -103,7 +103,7 @@ labs/03-data-api/                   Data_API.py — REST vs JDBC access to your 
 labs/04-online-feature-store/       Feature_Store.py + Coverage_Desk_Chatbot.py
 labs/05-agentic-memory/             Agent_Memory.py
 labs/06-delta-to-lakebase-sync/     Delta_To_Lakebase.py — reverse-ETL Delta → lb_* synced table
-labs/07-lakebase-cdf-to-scd1/       Lakebase_CDF_To_SCD1.py + scd1_pipeline.py — lb_* → bronze Delta → SCD1
+labs/07-lakebase-cdf-to-scd1/       Lakebase_CDF_To_SCD1.py + scd1_pipeline.py — Lakebase CDF → lb_*_history → SCD1
 docs/attendee.html · docs/facilitator.html   self-contained lab guides (open in a browser)
 DATA_MODEL.md · FACILITATOR.md · PROMPT_RUNBOOK.md
 ```

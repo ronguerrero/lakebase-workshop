@@ -619,47 +619,49 @@ agent = StateGraph(MessagesState)...compile(checkpointer=checkpointer)</code></p
   <section class="ex" id="lbscd1">
     <div class="exhead"><span class="exnum">7</span><h2>Lakebase → Delta (SCD Type 1 pipeline)</h2></div>
     <span class="tag">CDC · Lakeflow · SCD1</span>
-    <p>The round trip: the trading app mutates <code>lb_*</code> tables all day; the lakehouse needs the
-      <b>current</b> picture for risk analytics. Capture the changes and land them in Delta with a
-      <b>Lakeflow (DLT) AUTO CDC</b> flow applying <b>SCD Type 1</b> (latest value wins, no history).</p>
+    <p>The round trip: the trading app mutates operational tables all day; the lakehouse needs the
+      <b>current</b> picture for risk analytics. Turn on <b>Lakebase Change Data Feed</b> — it
+      auto-materializes every change into <code>lb_*_history</code> Delta tables — then a
+      <b>Lakeflow (DLT) AUTO CDC</b> flow applies <b>SCD Type 1</b> (latest value wins, no history).</p>
     <figure>
-      <svg viewBox="0 0 880 210" role="img" aria-label="Changes to the lb-prefixed Lakebase tables are extracted by watermark into an append-only bronze Delta table, then a Lakeflow DLT AUTO CDC flow applies SCD type 1 to produce current-state Delta tables.">
+      <svg viewBox="0 0 880 210" role="img" aria-label="Lakebase Change Data Feed automatically materializes changes to the Postgres positions and limits tables into lb-history Delta tables in Unity Catalog, then a Lakeflow DLT AUTO CDC flow applies SCD type 1 to produce current-state Delta tables.">
         <defs><marker id="sc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
           <marker id="scl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
         <rect class="d-lake" x="16" y="66" width="200" height="72" rx="10"/>
         <text class="d-lbl" x="116" y="90" text-anchor="middle" style="fill:var(--lakebase)">◆ LAKEBASE BRANCH</text>
-        <text class="d-tb" x="116" y="112" text-anchor="middle">lb_positions · lb_limits</text>
-        <text class="d-ts" x="116" y="128" text-anchor="middle">app mutations (updated_at)</text>
+        <text class="d-tb" x="116" y="112" text-anchor="middle">positions · limits</text>
+        <text class="d-ts" x="116" y="128" text-anchor="middle">app mutations (WAL)</text>
         <rect class="d-box" x="304" y="66" width="184" height="72" rx="9"/>
-        <text class="d-tb" x="396" y="94" text-anchor="middle">bronze Delta</text>
-        <text class="d-ts" x="396" y="112" text-anchor="middle">append-only changes</text>
-        <text class="d-ts" x="396" y="127" text-anchor="middle">watermark extract</text>
+        <text class="d-tb" x="396" y="94" text-anchor="middle">lb_*_history</text>
+        <text class="d-ts" x="396" y="112" text-anchor="middle">Delta, auto-created</text>
+        <text class="d-ts" x="396" y="127" text-anchor="middle">_pg_change_type · _sort_by</text>
         <rect class="d-accent" x="576" y="60" width="288" height="84" rx="9"/>
         <text class="d-tb" x="720" y="88" text-anchor="middle">Lakeflow (DLT) AUTO CDC</text>
         <text class="d-ts" x="720" y="107" text-anchor="middle">stored_as_scd_type = 1</text>
         <text class="d-ts" x="720" y="124" text-anchor="middle">→ positions_current · limits_current</text>
         <line class="d-line-lake" x1="216" y1="102" x2="302" y2="102" marker-end="url(#scl)"/>
-        <text class="d-lbl" x="259" y="94" text-anchor="middle" style="fill:var(--lakebase)">extract</text>
+        <text class="d-lbl" x="259" y="94" text-anchor="middle" style="fill:var(--lakebase)">CDF (auto)</text>
         <line class="d-line" x1="488" y1="102" x2="574" y2="102" marker-end="url(#sc)"/>
         <text class="d-lbl" x="531" y="94" text-anchor="middle">AUTO CDC</text>
       </svg>
-      <figcaption>Changed <code>lb_*</code> rows are extracted (by watermark) into append-only bronze
-        Delta, then a DLT AUTO CDC flow applies <b>SCD Type 1</b> — one current row per key — for analytics.</figcaption>
+      <figcaption><b>Lakebase CDF</b> tails the WAL and auto-creates <code>lb_*_history</code> Delta tables
+        in your schema; a DLT AUTO CDC flow applies <b>SCD Type 1</b> — one current row per key — for analytics.</figcaption>
       <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase source</span><span><span class="swatch" style="background:var(--accent)"></span>Lakeflow pipeline</span></div>
     </figure>
-    <div class="note wait"><b>Honest note:</b> Lakebase has no Delta-style change feed today, so this uses
-      the GA pattern — a watermark/incremental extract of the <code>lb_*</code> tables into bronze,
-      then DLT AUTO CDC for SCD1. (If your workspace gets native Lakebase→Delta CDC, swap the extract step.)</div>
+    <div class="note wait"><b>Public Preview:</b> Lakebase CDF requires <code>REPLICA IDENTITY FULL</code> on
+      the source tables (the notebook sets it), a destination catalog that doesn't use default storage, and
+      <b>CAN MANAGE</b> on the project to create the feed. Deletes are captured natively
+      (<code>_pg_change_type='delete'</code>). If the create step is denied, ask your facilitator.</div>
     <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook + pipeline</div>
       <p>Run <a href="../labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py" target="_blank" rel="noopener"><code>labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py</code></a> (seeds + mutates
-        <code>lb_*</code>, extracts to bronze, creates the Lakeflow pipeline from
+        <code>positions</code>/<code>limits</code>, enables CDF, then creates the Lakeflow pipeline from
         <a href="../labs/07-lakebase-cdf-to-scd1/scd1_pipeline.py" target="_blank" rel="noopener"><code>scd1_pipeline.py</code></a>) and confirm each key shows only its latest value.</p></div>
     <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
-      <div class="prompt"><span class="lbl">Genie Code prompt</span>Extract changed rows from my Lakebase
-        <code>lb_*</code> tables (by <code>updated_at</code> watermark) into an append-only bronze Delta
-        table, then build a Lakeflow DLT AUTO CDC flow with <code>stored_as_scd_type=1</code> keyed by
-        PK to produce current-state Delta tables; prove that an update leaves one latest row per key.
-        (Full prompt in the README.)</div></div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Enable Lakebase Change Data Feed on my
+        <code>positions</code>/<code>limits</code> tables (auto-creating <code>lb_*_history</code> Delta
+        tables), then build a Lakeflow DLT AUTO CDC flow with <code>stored_as_scd_type=1</code> keyed by
+        PK, sequenced by <code>_sort_by</code>, to produce current-state Delta tables; prove one latest
+        row per key. (Full prompt in the README.)</div></div>
     <div class="note check"><b>✓ Check</b> — after mutating a position/limit, the SCD1 target has exactly
       one row per key showing the latest value.</div>
   </section>

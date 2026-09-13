@@ -28,6 +28,7 @@ group. The reference solution notebook in each folder is the validated version t
 | **Model Serving — enabled in the workspace** | Ex4 Feature Serving endpoint | Attendees create the endpoint using their workspace access — there is **no separate "create serving endpoint" entitlement** to grant; just have Model Serving enabled in the workspace/region. |
 | **Change Data Feed** | Ex6 (Delta→Lakebase sync) + Ex4 offline feature table (publish prerequisite) | GA (the notebooks set it). |
 | **Lakebase synced tables** (reverse ETL) | Ex6 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
+| **Lakebase Change Data Feed (CDF)** | Ex7 — auto-materializes Lakebase changes into `cm_<user>.lb_*_history` Delta tables (`w.postgres.create_cdf_config`) | **Public Preview.** Two facilitator-facing requirements: **(a)** the shared UC catalog must **not use default storage** (else the history tables never appear), and **(b)** creating a feed needs **CAN MANAGE on the Lakebase project** — see the CDF note under Permissions. |
 | **Lakeflow / DLT (serverless)** — writes into the attendee's `cm_<user>` schema | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Attendees create the pipeline using their workspace access — there is **no separate "create pipeline" entitlement** to grant; just have serverless DLT enabled. |
 | **Lakebase REST data API** | Ex3 REST-vs-JDBC access | Preview/evolving — confirm the base path + query convention in App Connect / Data API. The notebook parameterizes `REST_BASE` and degrades gracefully. |
 
@@ -68,6 +69,14 @@ Simplest: put the attendees in one workspace group and grant that group.
 - **Serverless DLT enabled.** Attendees create the Ex7 pipeline and the Ex4 Feature Serving endpoint
   using their **workspace access** — there is **no distinct "create pipeline" / "create serving
   endpoint" entitlement** to grant. Being a workspace user (plus the toggles above) is what enables it.
+
+> **Ex7 Lakebase CDF needs two things (Public Preview).** (1) The shared UC catalog must **not use
+> default storage** — CDF writes the `lb_*_history` Delta tables there, and it silently produces nothing
+> on a default-storage catalog. Use a catalog with an explicit storage location. (2) Creating a CDF feed
+> needs **CAN MANAGE on the Lakebase project**, but attendees get `CAN_USE`. Either bump attendees to
+> `CAN_MANAGE` (consistent with the shared-project "isolation by convention" model), or **pre-create the
+> CDF feed per attendee** yourself (map `cm_<user>_ops` → `<catalog>.cm_<user>`). The Ex7 notebook fails
+> with a clear message if the feed can't be created.
 
 > **No account admin needed** — a workspace admin can run the whole workshop. Projects are created
 > and granted per-workspace; the CM data is synthetic and self-generated.
@@ -110,8 +119,10 @@ The recommended flow is 1 → 7 (as ordered in `docs/attendee.html`). Folder nam
 7. **Lunch / long break (30–45m)**
 8. **Exercise 6 — Delta → Lakebase sync (30m)** — reverse-ETL a curated Delta table into the branch
    as an `lb_*` synced table; watch an update propagate. **Short provisioning wait — teach through it.**
-9. **Exercise 7 — Lakebase → Delta, SCD Type 1 (40m)** — capture `lb_*` changes into bronze Delta,
-   then a Lakeflow AUTO CDC pipeline applies SCD1. **Pipeline creation runs a few minutes.**
+9. **Exercise 7 — Lakebase → Delta, SCD Type 1 (40m)** — turn on **Lakebase CDF** (auto-materializes
+   changes into `lb_*_history` Delta), then a Lakeflow AUTO CDC pipeline applies SCD1. **CDF is Public
+   Preview — pre-check the catalog-storage + CAN MANAGE requirements above; pipeline creation runs a few
+   minutes.**
 10. **Wrap-up (15m)** — where Lakebase fits in a CM stack; cleanup.
 
 > **Tight on time?** The core arc is 1 → 2 → 4 → 5 (get-to-know → connect → feature store → memory).
@@ -192,8 +203,10 @@ is already serverless; the cost is pipeline orchestration + initial snapshot, wh
   everything on it: the `cm_<user>` tables, the `lb_*` synced tables, and the `checkpoint%` tables.
 - **Delta → Lakebase sync exercise:** delete the synced table (removes its sync pipeline); the `lb_*`
   table lives on the branch, so dropping the branch also clears it.
-- **SCD1 exercise:** delete the Lakeflow/DLT pipeline (its `positions_current` / `limits_current`
-  tables live in the attendee's `cm_<user>` schema, dropped below).
+- **SCD1 exercise (Ex7):** delete the Lakeflow/DLT pipeline, then delete the **Lakebase CDF feed**
+  (`w.postgres.delete_cdf_config` — it can drop or preserve the `lb_*_history` Delta tables). The
+  `positions_current` / `limits_current` + `lb_*_history` tables live in the attendee's `cm_<user>`
+  schema; the `cm_<user>_ops` Postgres source schema is on the branch (dropping the branch clears it).
 - **Feature-store exercise:** delete the online table with the SDK (`delete_online_table`) — not
   `DROP TABLE`, which orphans data; delete the Feature Serving endpoint; optionally drop the Delta
   feature schema.

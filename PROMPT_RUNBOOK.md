@@ -141,20 +141,23 @@ row count; after raising AC's limit and re-syncing, Lakebase shows **CAD 300,000
 
 ---
 
-## Exercise 7 — Lakebase → Delta (SCD Type 1)
+## Exercise 7 — Lakebase → Delta (SCD Type 1) via Change Data Feed
 **A:** `labs/07-lakebase-cdf-to-scd1/README.md` → *The prompt*. **B:** `Lakebase_CDF_To_SCD1.py` (driver)
-+ `scd1_pipeline.py` (the DLT source). Lakebase has **no** Delta-style CDF, so the driver does a
-watermark extract of the `lb_*` tables → append-only **bronze Delta**, mutates a position + a limit,
-re-extracts, then creates a **Lakeflow (DLT) pipeline** that applies **AUTO CDC SCD Type 1**
-(`create_auto_cdc_flow`, fallback `apply_changes`) into `positions_current` / `limits_current`.
++ `scd1_pipeline.py` (the DLT source). The driver seeds `positions` + `limits` in a dedicated Postgres
+schema `cm_<me>_ops` (with `REPLICA IDENTITY FULL`), turns on **Lakebase Change Data Feed**
+(`w.postgres.create_cdf_config`) — which auto-creates `cm_<me>.lb_positions_history` /
+`lb_limits_history` Delta tables — mutates a position + a limit, then creates a **Lakeflow (DLT)
+pipeline** that applies **AUTO CDC SCD Type 1** (`create_auto_cdc_flow`, fallback `apply_changes`,
+sequencing by `_sort_by`) into `positions_current` / `limits_current`.
 
-✓ Bronze `lb_positions_changes` holds **multiple versions** of position 1 (250 → 900);
+✓ `lb_positions_history` holds **multiple change rows** for position 1 (insert 250, update 900);
 `positions_current` has **one row per `position_id`** (SCD1) and position 1 reads **net_qty = 900**
 (latest wins), with no second row.
 
-> **Honest note (in the README):** the robust GA path is the watermark extract; a native managed CDC
-> feed into Delta is preview — swap it in at the bronze step and the SCD1 pipeline downstream is
-> unchanged. Pipeline creation runs a few minutes.
+> **Preview caveats (facilitator):** Lakebase CDF is Public Preview — the destination catalog must not
+> use default storage, and creating a feed needs CAN MANAGE on the project (attendees have CAN_USE), so
+> either bump the grant or pre-create the feed. Deletes come for free (`_pg_change_type='delete'`).
+> Pipeline creation runs a few minutes.
 
 ---
 

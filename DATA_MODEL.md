@@ -27,8 +27,8 @@ can review results together.
    two ways (REST vs JDBC). Ex6 syncs Delta → lb_client_reference. Ex7 captures lb_* changes out.
                     │
         ┌───────────┴─────────────────────────────────────────────┐
-        ▼ (Ex6: Delta → Lakebase)                                  ▼ (Ex7: Lakebase → Delta)
-  Unity Catalog  <catalog>.cm_<user>.client_reference    <catalog>.cm_<user>.lb_*_changes  (append-only)
+        ▼ (Ex6: Delta → Lakebase)                                  ▼ (Ex7: Lakebase → Delta via CDF)
+  Unity Catalog  <catalog>.cm_<user>.client_reference    <catalog>.cm_<user>.lb_*_history  (CDF, auto)
         (Delta, PK + CDF; synced INTO Lakebase as lb_client_reference)          │  Lakeflow AUTO CDC, SCD Type 1
                                                                                  ▼
                                                               <catalog>.cm_<user>.positions_current / limits_current
@@ -135,14 +135,15 @@ reference/limits data, served at OLTP latency. Air Canada's `risk_limit_cad` is 
 **300,000,000** and re-synced to demonstrate propagation.
 
 ## 7. `lb_positions`, `lb_limits` (Lakebase) → bronze Delta → SCD1 (Ex7, Lakebase → Delta)
-Exercise 7's operational source + its lakehouse capture. Two `lb_*` tables the "trading app" writes on
-the branch — `lb_positions` (`position_id` PK, `client_id`, `instrument_id`, `net_qty`, `book`,
-`updated_at`) and `lb_limits` (`limit_id` PK, `client_id`, `limit_type`, `limit_cad`, `updated_at`) —
-are watermark-extracted (Lakebase has **no** Delta-style CDF) into append-only bronze Delta
-`<catalog>.cm_<user>.lb_*_changes`, then a Lakeflow **AUTO CDC SCD Type 1** pipeline produces
-current-state tables `<catalog>.cm_<user>.positions_current` / `limits_current` — one row per key,
-latest wins. Demo: position 1's `net_qty` goes 250 → 900; bronze holds both versions,
-`positions_current` holds only the latest.
+Exercise 7's operational source + its lakehouse capture. Two tables the "trading app" writes in a
+dedicated Postgres schema `cm_<user>_ops` on the branch — `positions` (`position_id` PK, `client_id`,
+`instrument_id`, `net_qty`, `book`, `updated_at`) and `limits` (`limit_id` PK, `client_id`,
+`limit_type`, `limit_cad`, `updated_at`) — are captured by **Lakebase Change Data Feed** (Public
+Preview) into auto-created Delta history tables `<catalog>.cm_<user>.lb_positions_history` /
+`lb_limits_history` (carrying `_pg_change_type`, `_sort_by`, …). A Lakeflow **AUTO CDC SCD Type 1**
+pipeline then produces current-state tables `<catalog>.cm_<user>.positions_current` / `limits_current`
+— one row per key, latest wins. Demo: position 1's `net_qty` goes 250 → 900; the history table holds
+both changes, `positions_current` holds only the latest.
 
 ---
 
@@ -191,7 +192,7 @@ Numbers below are the exercise/folder numbers (`labs/0N-…`), in recommended fl
 | 4 | **Online feature store + chatbot** (`04-…`) | the five Ex2 tables (or a UC-generated equivalent) | `client_risk_features` (Delta) → `client_risk_features_online` (Lakebase) |
 | 5 | **Agentic memory** (`05-…`) | — | `checkpoint%` tables |
 | 6 | **Delta → Lakebase sync** (`06-…`) | Delta `client_reference` | `lb_client_reference` (synced onto the branch) |
-| 7 | **Lakebase → Delta, SCD1** (`07-…`) | `lb_positions`, `lb_limits` | bronze `lb_*_changes` (Delta) → `positions_current` / `limits_current` (SCD1 Delta) |
+| 7 | **Lakebase → Delta, SCD1 via CDF** (`07-…`) | `cm_<user>_ops.positions`, `.limits` | CDF → `lb_positions_history` / `lb_limits_history` (Delta, auto) → `positions_current` / `limits_current` (SCD1 Delta) |
 
 > **Note on where the feature-store exercise reads from.** Its offline feature computation runs in a
 > Spark/serverless notebook and builds its own Delta source of the same capital-markets shape (so it's

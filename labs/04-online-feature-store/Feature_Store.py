@@ -388,16 +388,19 @@ except Exception as e:
 
 # COMMAND ----------
 
-from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
+import time
 
-# ServedEntityInput for a FeatureSpec entity: entity_name = the spec's full UC name;
-# feature specs are unversioned, so no entity_version. scale_to_zero keeps idle cost down.
-# NOTE: EndpointCoreConfigInput requires `name` (the endpoint name) in current SDKs — pass
-# it here as well as to create_and_wait, or you get "missing required argument: 'name'".
-existing = [e.name for e in w.serving_endpoints.list()]
-if ENDPOINT_NAME in existing:
-    print(f"✓ Serving endpoint already exists: {ENDPOINT_NAME}")
-else:
+from databricks.sdk.service.serving import (
+    EndpointCoreConfigInput, ServedEntityInput,
+    EndpointStateConfigUpdate, EndpointStateReady,
+)
+
+
+def _create_endpoint():
+    # ServedEntityInput for a FeatureSpec entity: entity_name = the spec's full UC name;
+    # feature specs are unversioned, so no entity_version. scale_to_zero keeps idle cost down.
+    # NOTE: EndpointCoreConfigInput requires `name` (the endpoint name) in current SDKs — pass
+    # it here as well as to create_and_wait, or you get "missing required argument: 'name'".
     print(f"Creating Feature Serving endpoint {ENDPOINT_NAME} (warms ~10-15 min) ...")
     w.serving_endpoints.create_and_wait(
         name=ENDPOINT_NAME,
@@ -411,6 +414,30 @@ else:
         ),
     )
     print(f"✓ Feature Serving endpoint ready: {ENDPOINT_NAME}")
+
+
+existing = [e.name for e in w.serving_endpoints.list()]
+if ENDPOINT_NAME in existing:
+    # "Exists" is not "healthy": if a prior deploy failed (e.g. the online store wasn't ready),
+    # the endpoint can be stuck in UPDATE_FAILED / NOT_READY. Re-running would otherwise just say
+    # "already exists" and never recover — so detect the bad state, delete it, and recreate.
+    ep = w.serving_endpoints.get(name=ENDPOINT_NAME)
+    state = getattr(ep, "state", None)
+    cfg_update = getattr(state, "config_update", None)
+    ready = getattr(state, "ready", None)
+    if cfg_update == EndpointStateConfigUpdate.UPDATE_FAILED or ready == EndpointStateReady.NOT_READY:
+        print(f"⚠ endpoint {ENDPOINT_NAME} is unhealthy (ready={ready}, config_update={cfg_update}) "
+              "— deleting and recreating ...")
+        w.serving_endpoints.delete(name=ENDPOINT_NAME)
+        time.sleep(10)   # let the delete settle before recreating
+        if ENDPOINT_NAME not in [e.name for e in w.serving_endpoints.list()]:
+            _create_endpoint()
+        else:
+            print("  (delete still settling — re-run this cell to recreate)")
+    else:
+        print(f"✓ Serving endpoint already exists and is healthy: {ENDPOINT_NAME}")
+else:
+    _create_endpoint()
 
 # COMMAND ----------
 
