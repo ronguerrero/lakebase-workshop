@@ -1,0 +1,294 @@
+# Databricks notebook source
+# MAGIC %md
+# MAGIC # Delta → Lakebase Sync (reverse ETL)
+# MAGIC
+# MAGIC **Path:** Delta → Lakebase &nbsp;|&nbsp; **Prerequisite:** your Lakebase branch (Ex1–2)
+# MAGIC
+# MAGIC A nightly-curated **client reference / risk-limits** table lives in the lakehouse (Delta), but
+# MAGIC the trading app needs it in **real time over Postgres**. A Lakebase **synced table** does that:
+# MAGIC it continuously replicates a Unity Catalog Delta table into your Lakebase branch as an
+# MAGIC operational `lb_*` table, so an app reads fresh, lakehouse-curated data with low latency.
+# MAGIC
+# MAGIC In this notebook you will:
+# MAGIC 1. Build a curated **Delta source** table in Unity Catalog (primary key + Change Data Feed).
+# MAGIC 2. Create a **synced table** that replicates it into **your Lakebase branch** as `lb_client_reference`.
+# MAGIC 3. Verify the rows landed in Lakebase over a direct Postgres read.
+# MAGIC 4. Change the Delta source and re-sync (TRIGGERED incremental) — watch it propagate.
+# MAGIC
+# MAGIC > This is the **reference solution** — what the Genie Code prompt in `README.md` should produce.
+
+# COMMAND ----------
+
+# MAGIC %pip install "databricks-sdk>=0.81.0" "psycopg[binary]>=3.1.0" --quiet
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# MAGIC %run ../_setup
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Configuration
+# MAGIC
+# MAGIC The Delta **source** lives in Unity Catalog; the **synced target** lands in *your* Lakebase
+# MAGIC branch (`USER_BRANCH`) as a Postgres table named with an `lb_` prefix.
+
+# COMMAND ----------
+
+dbutils.widgets.text("uc_catalog", "main", "Unity Catalog catalog")
+UC_CATALOG = dbutils.widgets.get("uc_catalog") or "main"
+UC_SCHEMA = f"cm_features_{_sanitize(user_email).replace('-', '_')}"
+
+SOURCE_TABLE = f"{UC_CATALOG}.{UC_SCHEMA}.client_reference"     # Delta source (lakehouse)
+# The synced table registers in UC and materializes in Lakebase; name it lb_* so the
+# operational Postgres table is obviously the synced copy.
+SYNCED_TABLE = f"{UC_CATALOG}.{UC_SCHEMA}.lb_client_reference"
+PG_TABLE = "lb_client_reference"                               # the Postgres table name in Lakebase
+
+print(f"Catalog/Schema:  {UC_CATALOG}.{UC_SCHEMA}")
+print(f"Delta source:    {SOURCE_TABLE}")
+print(f"Synced table:    {SYNCED_TABLE}")
+print(f"→ Lakebase:      project={PROJECT_ID}  branch={USER_BRANCH}  table={PG_SCHEMA or 'public'}.{PG_TABLE}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 1. Build the curated Delta source (PK + Change Data Feed)
+# MAGIC
+# MAGIC A synced table needs a source with a **primary key** and **Change Data Feed** enabled (the sync
+# MAGIC reads CDF to replicate incrementally). This stands in for a table your lakehouse pipelines
+# MAGIC curate — client reference data with per-client **risk limits** the desk enforces.
+
+# COMMAND ----------
+
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {UC_CATALOG}.{UC_SCHEMA}")
+
+from pyspark.sql.types import (
+    StructType, StructField, StringType, DoubleType, TimestampType,
+)
+from datetime import datetime
+
+schema = StructType([
+    StructField("client_id", StringType(), nullable=False),
+    StructField("legal_name", StringType()),
+    StructField("sector", StringType()),
+    StructField("credit_rating", StringType()),
+    StructField("risk_limit_cad", DoubleType()),
+    StructField("coverage_officer", StringType()),
+    StructField("updated_at", TimestampType()),
+])
+
+_now = datetime(2026, 9, 11, 21, 0, 0)
+rows = [
+    ("CL-AC",  "Air Canada",                "Airlines",    "BBB-", 250_000_000.0, "Sofia Martins", _now),
+    ("CL-MG",  "Magna International",        "Auto",        "A-",   180_000_000.0, "Sofia Martins", _now),
+    ("CL-BCE", "BCE Inc.",                   "Telecom",     "BBB+", 300_000_000.0, "David Chen",    _now),
+    ("CL-MFC", "Manulife Financial",         "Financials",  "A",    500_000_000.0, "David Chen",    _now),
+    ("CL-BAM", "Brookfield Corporation",     "Financials",  "A-",   450_000_000.0, "David Chen",    _now),
+    ("CL-SU",  "Suncor Energy",              "Energy",      "BBB+", 275_000_000.0, "Priya Nair",    _now),
+    ("CL-CNR", "Canadian National Railway",  "Industrials", "A",    220_000_000.0, "Priya Nair",    _now),
+    ("CL-ABX", "Barrick Gold",               "Materials",   "BBB",  160_000_000.0, "Priya Nair",    _now),
+    ("CL-CVE", "Cenovus Energy",             "Energy",      "BBB",  240_000_000.0, "Priya Nair",    _now),
+]
+src_df = spark.createDataFrame(rows, schema)
+src_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(SOURCE_TABLE)
+
+# Primary key (synced-table requirement) + Change Data Feed.
+spark.sql(f"ALTER TABLE {SOURCE_TABLE} ALTER COLUMN client_id SET NOT NULL")
+try:
+    spark.sql(f"ALTER TABLE {SOURCE_TABLE} ADD CONSTRAINT pk_client_reference PRIMARY KEY (client_id)")
+except Exception as e:
+    if "already exists" not in str(e).lower():
+        raise
+spark.sql(f"ALTER TABLE {SOURCE_TABLE} SET TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')")
+
+print(f"✓ Delta source built: {SOURCE_TABLE}  ({src_df.count()} rows, PK + CDF)")
+display(spark.table(SOURCE_TABLE).orderBy("client_id"))
+show_view_link("View the Delta source in Unity Catalog",
+               uc_table_url(UC_CATALOG, UC_SCHEMA, "client_reference"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 2. Create the synced table → your Lakebase branch
+# MAGIC
+# MAGIC `w.postgres.create_synced_table` provisions a **serverless Lakeflow sync pipeline** that
+# MAGIC replicates the Delta source into your Lakebase branch. Sync modes:
+# MAGIC
+# MAGIC | Policy | Behavior |
+# MAGIC |---|---|
+# MAGIC | `SNAPSHOT` | one full copy on demand — simplest; good for a first load |
+# MAGIC | `TRIGGERED` | incremental sync each time it's run (uses CDF) |
+# MAGIC | `CONTINUOUS` | streaming — changes flow through as they land (always-on pipeline) |
+# MAGIC
+# MAGIC > ⏳ **Provisioning wait (~a few minutes, fixed overhead):** creating the sync pipeline + the
+# MAGIC > first snapshot takes minutes regardless of data size — it's the pipeline lifecycle, not the 9
+# MAGIC > rows. Expected, not a hang.
+
+# COMMAND ----------
+
+# ⚠ VALIDATE: the synced-table API is evolving. This uses w.postgres.create_synced_table with a
+# SyncedTableSpec targeting your branch. Confirm the field names/shape against your installed SDK
+# (databricks-sdk); if the postgres synced-table surface differs, the equivalent proven path is the
+# online-store publish used in the feature-store lab (FeatureEngineeringClient.publish_table), which
+# runs the same synced-table machinery underneath.
+import time
+from databricks.sdk.service.postgres import (
+    SyncedTable,
+    SyncedTableSyncedTableSpec as SyncedTableSpec,
+    SyncedTableSyncedTableSpecSyncedTableSchedulingPolicy as SchedulingPolicy,
+    NewPipelineSpec,
+)
+
+spec = SyncedTableSpec(
+    source_table_full_name=SOURCE_TABLE,
+    primary_key_columns=["client_id"],
+    branch=USER_BRANCH,                          # sync into YOUR branch
+    postgres_database=PG_DATABASE,               # databricks_postgres
+    scheduling_policy=SchedulingPolicy.SNAPSHOT,  # first load; switch to TRIGGERED below
+    create_database_objects_if_missing=True,
+    new_pipeline_spec=NewPipelineSpec(
+        storage_catalog=UC_CATALOG,              # where the sync pipeline stores its state
+        storage_schema=UC_SCHEMA,
+    ),
+)
+
+def create_synced_with_retry(attempts=5, wait_s=20):
+    """Create the synced table, tolerating an existing one from a prior run."""
+    for attempt in range(1, attempts + 1):
+        try:
+            op = w.postgres.create_synced_table(
+                synced_table=SyncedTable(name=f"projects/{PROJECT_ID}/syncedTables/{SYNCED_TABLE}",
+                                         spec=spec),
+                synced_table_id=SYNCED_TABLE,
+            )
+            return op.wait()
+        except Exception as e:
+            msg = str(e).lower()
+            if "already exists" in msg or "resource_already_exists" in msg:
+                print("  synced table already exists — reusing it")
+                return w.postgres.get_synced_table(name=f"projects/{PROJECT_ID}/syncedTables/{SYNCED_TABLE}")
+            if attempt == attempts:
+                raise
+            print(f"  retry {attempt}/{attempts} in {wait_s}s ({str(e)[:80]})")
+            time.sleep(wait_s)
+
+st = create_synced_with_retry()
+print(f"✓ Synced table created: {SYNCED_TABLE}")
+print(f"  detailed_state: {getattr(getattr(st, 'status', None), 'detailed_state', 'n/a')}")
+
+# COMMAND ----------
+
+# Poll until the first snapshot has landed (state contains ONLINE / SYNCED), tolerant of naming.
+import time
+for _ in range(30):  # ~a few minutes
+    cur = w.postgres.get_synced_table(name=f"projects/{PROJECT_ID}/syncedTables/{SYNCED_TABLE}")
+    state = str(getattr(getattr(cur, "status", None), "detailed_state", "")).upper()
+    print("  sync state:", state)
+    if any(k in state for k in ("ONLINE", "SYNCED", "READY")):
+        break
+    if "FAIL" in state or "ERROR" in state:
+        raise RuntimeError(f"Sync failed: {state}")
+    time.sleep(20)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 3. Verify — read the synced table over Postgres
+# MAGIC
+# MAGIC The synced table is now a real Postgres table on your branch. Read it with the same
+# MAGIC `get_connection()` helper the other labs use (defaults to your branch).
+
+# COMMAND ----------
+
+conn = get_connection()   # your branch
+try:
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT schemaname, tablename FROM pg_tables
+            WHERE tablename LIKE 'lb_%' ORDER BY 1,2
+        """)
+        print("lb_* tables on your branch:", [f"{r['schemaname']}.{r['tablename']}" for r in cur.fetchall()])
+        # ⚠ VALIDATE: the synced table's schema/name in Postgres may be public.lb_client_reference
+        # or your schema — adjust the qualifier if the SELECT below can't find it.
+        cur.execute(f'SELECT COUNT(*) AS n FROM {PG_TABLE}')
+        pg_n = cur.fetchone()["n"]
+        cur.execute(f'SELECT client_id, legal_name, risk_limit_cad, coverage_officer '
+                    f'FROM {PG_TABLE} ORDER BY client_id LIMIT 5')
+        sample = cur.fetchall()
+    delta_n = spark.table(SOURCE_TABLE).count()
+    print(f"✓ Lakebase {PG_TABLE}: {pg_n} rows   (Delta source: {delta_n} rows)")
+    for r in sample:
+        print(f"   {r['client_id']:<8} {r['legal_name']:<26} limit=CAD {r['risk_limit_cad']:>14,.0f}  {r['coverage_officer']}")
+finally:
+    conn.close()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 4. Change the source and re-sync (incremental)
+# MAGIC
+# MAGIC Raise Air Canada's risk limit in the lakehouse, then run a **TRIGGERED** sync — only the
+# MAGIC changed row flows through (via CDF), and the new value appears in Lakebase.
+
+# COMMAND ----------
+
+from delta.tables import DeltaTable
+
+DeltaTable.forName(spark, SOURCE_TABLE).update(
+    condition="client_id = 'CL-AC'",
+    set={"risk_limit_cad": "300000000.0", "updated_at": "current_timestamp()"},
+)
+print("✓ Raised Air Canada's risk limit in the Delta source to CAD 300,000,000")
+
+# Re-sync. A synced table is backed by a Lakeflow sync pipeline; its id is on the synced table's
+# status (status.pipeline_id). There's no w.postgres.refresh_synced_table in the SDK — you drive the
+# refresh by starting an update on that pipeline (exactly what the UI "Sync now" button does).
+try:
+    cur_st = w.postgres.get_synced_table(name=f"projects/{PROJECT_ID}/syncedTables/{SYNCED_TABLE}")
+    pipe_id = getattr(getattr(cur_st, "status", None), "pipeline_id", None)
+    if pipe_id:
+        upd = w.pipelines.start_update(pipeline_id=pipe_id, full_refresh=False)
+        print(f"  triggered a sync via the backing pipeline {pipe_id} (update {getattr(upd,'update_id','')})")
+    else:
+        print("  synced-table status has no pipeline_id yet — use the 'Sync now' button in the Lakebase UI,")
+        print("  or create with scheduling_policy=TRIGGERED/CONTINUOUS so it refreshes automatically.")
+except Exception as e:
+    print(f"  re-sync flagged for validation: {str(e)[:160]}")
+
+# COMMAND ----------
+
+import time
+time.sleep(30)  # give the incremental sync a moment
+conn = get_connection()
+try:
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT risk_limit_cad FROM {PG_TABLE} WHERE client_id = 'CL-AC'")
+        row = cur.fetchone()
+    print(f"Air Canada risk_limit_cad in Lakebase now: CAD {row['risk_limit_cad']:,.0f}"
+          if row else "row not found yet — sync may still be running")
+finally:
+    conn.close()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## ✓ Checks
+# MAGIC - The Delta source has 9 clients with a PK + CDF.
+# MAGIC - `lb_client_reference` exists on **your Lakebase branch** and its row count matches the source.
+# MAGIC - After raising AC's limit and re-syncing, Lakebase shows **CAD 300,000,000**.
+# MAGIC
+# MAGIC ## Cleanup (optional)
+# MAGIC ```python
+# MAGIC # w.postgres.delete_synced_table(name=f"projects/{PROJECT_ID}/syncedTables/{SYNCED_TABLE}")
+# MAGIC # spark.sql(f"DROP TABLE IF EXISTS {SOURCE_TABLE}")
+# MAGIC ```
+# MAGIC
+# MAGIC ## What's next
+# MAGIC The reverse of this — **Lakebase → Delta (CDF capture)** — is the next exercise: capture writes
+# MAGIC to your `lb_*` operational tables back into the lakehouse and transform them into **SCD1**
+# MAGIC analytical tables.

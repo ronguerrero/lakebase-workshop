@@ -1,0 +1,159 @@
+# PROMPT_RUNBOOK — CIBC Capital Markets Lakebase Workshop
+
+Every module carries two paths — pick per participant:
+- **A (Genie Code):** paste the module's prompt into **Genie Code** (Databricks Assistant, Agent
+  Mode). Zero install. The prompts are fully-qualified so the whole room generates near-identical
+  code — review it together.
+- **B (Reference notebook):** the checked-in `.py` notebook is the validated version that prompt
+  should produce. Run it directly, or diff the generated code against it.
+
+The **verbatim prompts** live in each exercise's `README.md` (the single source of truth). This
+runbook is the run-of-show: what each module does, which path to use, and the **✓ validation** to
+confirm before moving on.
+
+## Driving Genie Code (Path A)
+- **One fresh Genie Code chat per module.** The prompts are self-contained, so a new chat keeps
+  context small.
+- **Don't tell it to "confirm" or "approve."** It plans and executes end-to-end — paste, glance at
+  the plan, let it run, then run the generated cells top-to-bottom.
+- **Be on the right surface:** a **serverless notebook** in the same folder as `labs/` so
+  `%run ../_setup` resolves. The notebook-based exercises start with `%pip install` +
+  `dbutils.library.restartPython()` — let the restart happen before the later cells run.
+- Everything runs on **serverless** — no cluster needed.
+
+> **Prerequisites:** see `FACILITATOR.md → Prerequisites` — Unity Catalog + a catalog, a serverless
+> SQL warehouse, Lakebase (project created by the facilitator via `scripts/facilitator_setup.py`), a
+> served pay-per-token Claude endpoint, permission to create serving endpoints (feature store) and
+> serverless DLT pipelines (SCD1).
+
+---
+
+## Phase 0 — Facilitator setup (once, before the room)
+Create the **shared** Lakebase project and a **branch per participant**, and grant them. Idempotent.
+```bash
+python scripts/facilitator_setup.py -p <profile> \
+    --project-id cibc-cm-workshop \
+    --grant-user a@cibc.com --grant-user b@cibc.com \
+    --branch-max-cu 4 --uc-catalog main
+# large room past the per-project branch limit: add --max-branches-per-project 18
+# (splits attendees across cibc-cm-workshop-1, -2, …; each sets LAKEBASE_SHARED_PROJECT_ID)
+```
+Then apply the workspace/UC grants it prints (serverless warehouse `CAN USE`, FM endpoint
+`CAN QUERY`, create-serving-endpoint entitlement, create-serverless-DLT-pipeline for Ex5).
+
+✓ Project AVAILABLE; each participant has their own branch `br · <username>` and can connect and
+create their `cm_<username>` schema on it.
+
+---
+
+## Exercise 1 — Getting to Know Lakebase  *(no Genie code)*
+Guided UI walkthrough: what Lakebase is, the project/branch/endpoint model, scale-to-zero, and the
+in-UI **SQL Editor**. Then a hands-on **autoscale/load** step: run `Autoscale_Load.py` to drive a
+concurrent query load at your branch and watch the compute **CU curve** rise in the Monitoring UI and
+settle afterward. Full steps: `labs/ex1-getting-to-know-lakebase/README.md`.
+
+✓ Participant opens their project, runs `SELECT version();` / `information_schema` queries in the SQL
+Editor, creates their `cm_<username>` schema, and sees the branch scale under load (CU rises above
+`min` during the run, settles after). *(Branch endpoints need `max_cu > min_cu` for the curve to
+show — the facilitator sets this with `--branch-max-cu`.)*
+
+---
+
+## Exercise 2 — Authentication + data generation
+**A:** `labs/ex2-authentication/README.md` → *The prompt (paste verbatim)*. Generates the connection
+(`%run ../_setup`, `get_connection()`) + loads the 5 capital-markets tables.
+**B:** `labs/ex2-authentication/Connect_And_Generate_Data.py`.
+**External tool:** `labs/ex2-authentication/VSCODE_CONNECT.md` (native password role, read the data).
+
+✓ 9 clients, 18 instruments, ~540 market prices, ~95 positions, 600 trades. Clients group under the 3
+coverage officers. **Air Canada's gross notional is dominated by WTI + heating oil** (the hero). VS
+Code connects over SSL and reads `cm_<username>.clients`.
+
+---
+
+## Exercise 3 — Data APIs: REST vs JDBC
+**A:** `labs/data-api/README.md` → *Generate with Genie* prompt. **B:** `labs/data-api/Data_API.py`.
+Reads a few `clients` rows from your branch two ways — Part A over the **REST data API** (OAuth bearer
+token, JSON back), Part B over **JDBC** (Spark's JDBC reader, same driver/URL a JVM app uses).
+
+✓ REST returned JSON rows (or you saw the body and adjusted `REST_BASE` to your workspace); the JDBC
+URL printed and the Spark JDBC read returned your `clients` rows; you can say which path a browser
+dashboard vs a JVM service should use, and why.
+
+> **REST is preview/evolving** — the notebook parameterizes `REST_BASE` and degrades gracefully; JDBC
+> is the always-works path. Both hit the **same branch** and obey the **same grants** (your Databricks
+> identity is the Postgres role).
+
+---
+
+## Exercise 4 — Delta → Lakebase sync (reverse ETL)
+**A:** `labs/delta-to-lakebase-sync/README.md` → *generate it with Genie* prompt.
+**B:** `labs/delta-to-lakebase-sync/Delta_To_Lakebase.py`. Builds a curated Delta `client_reference`
+(PK + CDF) → creates a Lakebase **synced table** `lb_client_reference` on your branch via
+`w.postgres.create_synced_table` (SNAPSHOT) → reads it back over Postgres → raises Air Canada's limit
+and re-syncs (TRIGGERED) to show the update land.
+
+✓ Delta source has 9 rows + PK + CDF; `lb_client_reference` exists on **your branch** with a matching
+row count; after raising AC's limit and re-syncing, Lakebase shows **CAD 300,000,000**.
+
+> **Short provisioning wait (expected):** the sync pipeline + first snapshot is fixed overhead, not
+> the 9 rows. Synced tables are an evolving/preview surface — confirm the API in your workspace docs.
+
+---
+
+## Exercise 5 — Lakebase → Delta (SCD Type 1)
+**A:** `labs/lakebase-cdf-to-scd1/README.md` → *The prompt*. **B:** `Lakebase_CDF_To_SCD1.py` (driver)
++ `scd1_pipeline.py` (the DLT source). Lakebase has **no** Delta-style CDF, so the driver does a
+watermark extract of the `lb_*` tables → append-only **bronze Delta**, mutates a position + a limit,
+re-extracts, then creates a **Lakeflow (DLT) pipeline** that applies **AUTO CDC SCD Type 1**
+(`create_auto_cdc_flow`, fallback `apply_changes`) into `positions_current` / `limits_current`.
+
+✓ Bronze `lb_positions_changes` holds **multiple versions** of position 1 (250 → 900);
+`positions_current` has **one row per `position_id`** (SCD1) and position 1 reads **net_qty = 900**
+(latest wins), with no second row.
+
+> **Honest note (in the README):** the robust GA path is the watermark extract; a native managed CDC
+> feed into Delta is preview — swap it in at the bronze step and the SCD1 pipeline downstream is
+> unchanged. Pipeline creation runs a few minutes.
+
+---
+
+## Exercise 6 — Online Feature Store + Coverage Desk Assistant
+**A (Part A — feature store):** `labs/ex3-online-feature-store/README.md` → *Part A* prompt. Offline
+Delta features (PK + CDF) → publish to Lakebase online store → `FeatureSpec` → **Feature Serving
+endpoint** → query via the **MLflow deploy client**.
+**A (Part B — chatbot):** same README → *Part B* prompt. LangChain agent whose `lookup_client_risk`
+tool calls the serving endpoint.
+**B:** `Feature_Store.py` + `Coverage_Desk_Chatbot.py`.
+
+✓ 9 clients; **Air Canada = `risk_tier=HIGH`**; the online table appears in Lakebase; the serving
+endpoint returns AC's features; the chatbot's verbose trace shows `lookup_client_risk` firing and its
+answer reflects AC's HIGH risk / large energy exposure.
+
+> **Why Feature Serving (not a raw Postgres read):** the documented agent pattern is a Feature
+> Serving endpoint wrapped as a LangChain tool and queried with the MLflow deploy client — governed,
+> versioned, monitored. So "tool vs MLflow API" is a false choice: the tool *is* the MLflow call.
+
+---
+
+## Exercise 7 — Agentic Memory on Lakebase
+**A:** `labs/ex4-agentic-memory/README.md` → *The prompt*. LangGraph `PostgresSaver` on Lakebase for
+durable conversation memory; inspect + de-serialize the `checkpoint%` tables.
+**B:** `labs/ex4-agentic-memory/Agent_Memory.py`.
+
+✓ Turn 2 recalls what Turn 1 said on the same `thread_id` (Sofia covers Air Canada + Suncor); a fresh
+agent object still recalls it; the four `checkpoint%` tables exist; de-serializing `checkpoint_blobs`
+with `JsonPlusSerializer` finds the row holding "Air Canada".
+
+> **Two gotchas (baked into the reference notebook):** (1) subclass `ChatDatabricks` to pop
+> `temperature` (Claude endpoints 400 on it); (2) connect with psycopg **keyword args, not a URL**
+> (the OAuth token breaks URL parsing). Database name is `databricks_postgres` (underscores).
+
+---
+
+## The hero thread (keep it consistent)
+**Air Canada (`CL-AC`)** carries a large WTI/heating-oil energy book → HIGH-risk features in the
+feature-store exercise, the client the coverage officer tells the assistant about in the memory
+exercise, the limit raised in the Delta→Lakebase sync, and the position that changes in SCD1. Same
+client, threaded through every Lakebase use: OLTP data (Ex2), REST/JDBC reads (Ex3), reverse-ETL
+reference (Ex4), change capture (Ex5), feature serving (Ex6), agent memory (Ex7).

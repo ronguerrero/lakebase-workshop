@@ -1,0 +1,17 @@
+# Local config / secrets
+.workshop-config
+.databricks/
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

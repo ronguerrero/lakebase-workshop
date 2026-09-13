@@ -1,0 +1,694 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lakebase Trading Desk Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#F1F4F5; --paper:#FFFFFF; --ink:#16212B; --muted:#586673;
+    --line:#DEE5E9; --line-strong:#C7D1D8;
+    --accent:#0F6E78; --accent-weak:#E4F0F1; --accent-ink:#0B4F57;
+    --lakebase:#B96C13; --lakebase-weak:#FBEEDD;
+    --good:#2E7D46; --high:#C0392B;
+    --code-bg:#0E1A21; --code-ink:#DCE6EA; --code-line:#22333D;
+    --display:"Fraunces",Georgia,"Times New Roman",serif;
+    --body:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --maxw:820px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0C131A; --paper:#131E27; --ink:#E7EEF3; --muted:#93A2AD;
+      --line:#233039; --line-strong:#32424D;
+      --accent:#39A8B2; --accent-weak:#122A2E; --accent-ink:#8FD3D9;
+      --lakebase:#E0A24C; --lakebase-weak:#2A2013;
+      --good:#5FB87A; --high:#E27567;
+      --code-bg:#0A141A; --code-ink:#D6E2E8; --code-line:#1E2E37;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C131A; --paper:#131E27; --ink:#E7EEF3; --muted:#93A2AD;
+    --line:#233039; --line-strong:#32424D;
+    --accent:#39A8B2; --accent-weak:#122A2E; --accent-ink:#8FD3D9;
+    --lakebase:#E0A24C; --lakebase-weak:#2A2013;
+    --good:#5FB87A; --high:#E27567;
+    --code-bg:#0A141A; --code-ink:#D6E2E8; --code-line:#1E2E37;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);
+    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:20px;padding-block:0}
+  a{color:var(--accent-ink)}
+
+  /* Header */
+  header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .top .wrap{display:flex;align-items:center;gap:16px;min-height:60px;flex-wrap:wrap;padding-block:8px}
+  .brand{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap}
+  .brand b{color:var(--accent);font-weight:500}
+  nav.exlinks{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+  nav.exlinks a{font-family:var(--mono);font-size:12px;text-decoration:none;color:var(--muted);
+    padding:5px 9px;border-radius:6px}
+  nav.exlinks a:hover{color:var(--ink);background:var(--paper)}
+
+  /* Path toggle */
+  .toggle{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;background:var(--paper)}
+  .toggle button{font-family:var(--mono);font-size:12px;border:0;background:transparent;color:var(--muted);
+    padding:6px 12px;cursor:pointer;letter-spacing:.02em}
+  .toggle button[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .toggle button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+  /* Hero */
+  .hero{padding-block:52px 30px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(2.1rem,6vw,3.2rem);line-height:1.04;
+    margin:.35em 0 .3em;letter-spacing:-.01em;text-wrap:balance}
+  .lede{font-size:1.12rem;color:var(--muted);max-width:60ch}
+  .meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:500}
+
+  /* Sections */
+  section.ex{padding-block:44px;border-bottom:1px solid var(--line)}
+  .exhead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+  .exnum{font-family:var(--mono);font-size:13px;color:#fff;background:var(--accent);
+    width:30px;height:30px;border-radius:7px;display:grid;place-items:center;flex:none;font-weight:500}
+  h2{font-family:var(--display);font-weight:600;font-size:1.85rem;margin:0;letter-spacing:-.01em;text-wrap:balance}
+  h3{font-family:var(--body);font-weight:600;font-size:1.05rem;margin:28px 0 8px}
+  .tag{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);border:1px solid var(--line-strong);border-radius:20px;padding:2px 10px}
+  p{margin:.6em 0}
+  ol.steps{margin:14px 0;padding:0;counter-reset:s;list-style:none}
+  ol.steps>li{position:relative;padding-left:34px;margin:14px 0}
+  ol.steps>li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;
+    font-family:var(--mono);font-size:12px;color:var(--accent-ink);background:var(--accent-weak);
+    width:23px;height:23px;border-radius:50%;display:grid;place-items:center;font-weight:500}
+
+  /* Cards / callouts */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:18px 0}
+  .note{border-left:3px solid var(--accent);background:var(--accent-weak);border-radius:0 10px 10px 0;
+    padding:12px 16px;margin:16px 0;font-size:.96rem}
+  .note.wait{border-left-color:var(--lakebase);background:var(--lakebase-weak)}
+  .note.check{border-left-color:var(--good);background:transparent}
+  .note b{font-weight:600}
+  .kbd{font-family:var(--mono);font-size:.85em;background:var(--paper);border:1px solid var(--line-strong);
+    border-radius:5px;padding:1px 6px}
+
+  /* Code + prompt (path-switched) */
+  .path-genie{display:none}
+  body[data-path="genie"] .path-genie{display:block}
+  body[data-path="genie"] .path-notebook{display:none}
+  .pathlabel{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    display:inline-flex;align-items:center;gap:7px;margin:20px 0 8px;color:var(--muted)}
+  .pathlabel .dot{width:7px;height:7px;border-radius:50%}
+  .path-notebook .pathlabel .dot{background:var(--accent)}
+  .path-genie .pathlabel .dot{background:var(--lakebase)}
+  pre{background:var(--code-bg);color:var(--code-ink);border:1px solid var(--code-line);border-radius:10px;
+    padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.55;margin:8px 0}
+  pre .c{color:#7FA8B0}       /* comment */
+  pre .k{color:#E0A24C}       /* keyword-ish */
+  pre .s{color:#8FD3D9}       /* string */
+  code{font-family:var(--mono);font-size:.9em;background:var(--accent-weak);color:var(--accent-ink);
+    padding:1px 5px;border-radius:5px}
+  pre code{background:none;color:inherit;padding:0}
+  .prompt{border:1px dashed var(--lakebase);background:var(--lakebase-weak);border-radius:10px;
+    padding:14px 16px;margin:8px 0;font-size:.95rem}
+  .prompt .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--lakebase);display:block;margin-bottom:8px}
+
+  /* Figures */
+  figure{margin:24px 0;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px}
+  figure svg{display:block;width:100%;height:auto;color:var(--ink)}
+  figcaption{font-size:.9rem;color:var(--muted);margin-top:12px;text-align:center;text-wrap:balance}
+  .legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;font-family:var(--mono);font-size:11px;
+    color:var(--muted);margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  /* diagram shapes */
+  .d-box{fill:var(--paper);stroke:var(--line-strong);stroke-width:1.5}
+  .d-lake{fill:var(--lakebase-weak);stroke:var(--lakebase);stroke-width:2}
+  .d-accent{fill:var(--accent-weak);stroke:var(--accent);stroke-width:1.5}
+  .d-t{fill:var(--ink);font-family:var(--body);font-size:13px}
+  .d-tb{fill:var(--ink);font-family:var(--body);font-size:13px;font-weight:600}
+  .d-ts{fill:var(--muted);font-family:var(--mono);font-size:11px}
+  .d-lbl{fill:var(--muted);font-family:var(--mono);font-size:11px}
+  .d-line{stroke:var(--muted);stroke-width:1.6;fill:none}
+  .d-line-lake{stroke:var(--lakebase);stroke-width:2;fill:none}
+
+  footer{padding-block:40px 60px;color:var(--muted);font-size:.9rem}
+  footer .wrap{display:flex;flex-direction:column;gap:6px}
+  @media (max-width:520px){ nav.exlinks{display:none} .hero{padding-block:36px 24px} }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand">CIBC Capital Markets · <b>Lakebase Lab</b></span>
+    <nav class="exlinks">
+      <a href="#ex1">01</a><a href="#ex2">02</a><a href="#dataapi">03</a><a href="#deltalb">04</a><a href="#lbscd1">05</a><a href="#ex3">06</a><a href="#ex4">07</a>
+    </nav>
+    <div class="toggle" role="group" aria-label="Choose how you build each step">
+      <button id="btn-nb" aria-pressed="true">Run the notebook</button>
+      <button id="btn-ge" aria-pressed="false">Generate with Genie</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">Hands-on workshop</div>
+    <h1>The Trading Desk on Lakebase</h1>
+    <p class="lede">Build a CIBC Capital Markets coverage desk on Lakebase — managed Postgres on
+      Databricks. Connect to it, generate a desk's worth of data, reach it over REST and JDBC, sync it
+      both ways with the lakehouse, serve live client-risk features to a chatbot, and give that chatbot
+      a memory. One managed Postgres, the whole desk.</p>
+    <div class="meta">
+      <span><b>~5h</b> · seven exercises</span>
+      <span><b>Serverless</b> · no cluster</span>
+      <span>Hero client · <b>Air Canada (CL-AC)</b></span>
+    </div>
+    <div class="note">Every code step below has two ways to build it. Use the
+      <b>Run the notebook / Generate with Genie</b> switch in the header: <b>Notebook</b> shows the
+      reviewed reference code to run; <b>Genie</b> shows the exact prompt to paste into the Databricks
+      Assistant (Agent Mode) and have it write the code for you. Same result — pick your style.</div>
+  </section>
+
+  <!-- ============ EX1 ============ -->
+  <section class="ex" id="ex1">
+    <div class="exhead"><span class="exnum">1</span><h2>Get to know Lakebase</h2></div>
+    <span class="tag">UI walkthrough · no code</span>
+    <p>Lakebase is <b>fully-managed PostgreSQL (16/17)</b> built into the lakehouse — the OLTP store
+      behind your desk's apps and agents, sitting next to the Delta tables you already query. It
+      autoscales, scales to zero when idle, branches like Git, and syncs with Unity Catalog.</p>
+    <ol class="steps">
+      <li>In the workspace, open <b>Compute → Database Instances</b> (a.k.a. <b>Lakebase</b>) and open
+        the shared workshop project. You share it with the room, but you work on <b>your own branch</b>
+        — <code>br · &lt;your-username&gt;</code> — an isolated copy the facilitator created for you.</li>
+      <li>Open your branch and note its compute endpoint. An <code>IDLE</code> state is normal — the
+        endpoint scaled to zero and wakes on the next connection. (Every exercise connects to this
+        branch automatically.)</li>
+      <li>Open the built-in <b>SQL Editor</b> against <b>your branch</b> and run these — they work on an
+        empty branch (you'll create tables in Exercise 2):</li>
+    </ol>
+    <pre><code><span class="c">-- which Postgres, who am I, where do names resolve?</span>
+SELECT version();
+SELECT current_user, current_database();
+SHOW search_path;
+
+<span class="c">-- create your workshop schema (underscores, not hyphens)</span>
+CREATE SCHEMA IF NOT EXISTS cm_&lt;you&gt;;</code></pre>
+    <div class="note check"><b>✓ Check</b> — <code>version()</code> returns a PostgreSQL 16/17 banner,
+      <code>current_user</code> is your email, and your <code>cm_&lt;you&gt;</code> schema now exists.</div>
+
+    <h3>Step 6 — watch your branch autoscale under load</h3>
+    <p>Market open: a burst of pricing/limit queries hits your book. Run
+      <code>Autoscale_Load.py</code> — it fires a concurrent workload at <b>your branch</b> and its
+      compute scales up from the minimum toward its max, then settles back to zero when the load stops.
+      You pay only for what you use.</p>
+    <figure>
+      <svg viewBox="0 0 860 190" role="img" aria-label="A concurrent query load hits the attendee's Lakebase branch endpoint; its compute autoscales from 1 CU up toward its max under load, then scales back to zero when idle.">
+        <defs><marker id="au" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+        <rect class="d-box" x="16" y="66" width="176" height="60" rx="9"/>
+        <text class="d-tb" x="104" y="92" text-anchor="middle">Load (N workers)</text>
+        <text class="d-ts" x="104" y="109" text-anchor="middle">concurrent queries</text>
+        <line class="d-line" x1="192" y1="96" x2="250" y2="96" marker-end="url(#au)"/>
+        <text class="d-lbl" x="221" y="88" text-anchor="middle">market open</text>
+        <!-- branch endpoint with CU meter -->
+        <rect class="d-lake" x="252" y="40" width="330" height="112" rx="10"/>
+        <text class="d-lbl" x="272" y="62" style="fill:var(--lakebase)">◆ YOUR BRANCH · compute endpoint</text>
+        <rect x="272" y="96" width="26" height="34" rx="3" fill="var(--lakebase)" opacity=".9"/>
+        <rect x="304" y="80" width="26" height="50" rx="3" fill="var(--lakebase)" opacity=".75"/>
+        <rect x="336" y="60" width="26" height="70" rx="3" fill="var(--lakebase)" opacity=".6"/>
+        <rect x="368" y="46" width="26" height="84" rx="3" fill="var(--lakebase)" opacity=".45"/>
+        <text class="d-ts" x="330" y="146" text-anchor="middle">1 CU → max, following load</text>
+        <text class="d-ts" x="500" y="92" text-anchor="middle">autoscaling</text>
+        <text class="d-ts" x="500" y="108" text-anchor="middle">pay per use</text>
+        <line class="d-line" x1="582" y1="96" x2="640" y2="96" marker-end="url(#au)"/>
+        <text class="d-lbl" x="611" y="88" text-anchor="middle">idle</text>
+        <rect class="d-box" x="642" y="66" width="200" height="60" rx="9"/>
+        <text class="d-tb" x="742" y="92" text-anchor="middle">scale to zero</text>
+        <text class="d-ts" x="742" y="109" text-anchor="middle">suspends, ~no cost</text>
+      </svg>
+      <figcaption>Under load your branch's compute climbs from 1 CU toward its max; when the load stops
+        it scales back to zero. Watch the curve on the Lakebase <b>Monitoring</b> graph as it runs.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span></div>
+    </figure>
+    <div class="note wait"><b>Heads-up:</b> the notebook polls endpoint <em>state</em> (the live CU number
+      isn't in the API) — open the Lakebase <b>Monitoring</b> graph alongside it to see the CU curve.
+      Your facilitator provisions your branch with room to scale (max &gt; min CU).</div>
+    <div class="note check"><b>✓ Check</b> — compute rises above the minimum while the load runs and
+      settles back afterward (visible on the Monitoring graph).</div>
+  </section>
+
+  <!-- ============ EX2 ============ -->
+  <section class="ex" id="ex2">
+    <div class="exhead"><span class="exnum">2</span><h2>Authenticate &amp; generate the desk's data</h2></div>
+    <span class="tag">OAuth · psycopg · synthetic CM data</span>
+    <p>In a notebook your <b>Databricks identity is your Postgres role</b>: you mint a short-lived OAuth
+      database credential and connect — no stored password. Then you load five capital-markets tables
+      into your schema (<code>clients, instruments, market_prices, positions, trades</code>), with Air
+      Canada seeded as a large WTI + heating-oil (energy) book.</p>
+
+    <div class="path-notebook">
+      <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
+      <p>Open <code>labs/ex2-authentication/Connect_And_Generate_Data.py</code> on serverless and
+        <b>Run all</b>. The connection comes from the shared helper — connect with <b>keyword args, not
+        a URL</b> (OAuth tokens break URL parsing):</p>
+      <pre><code><span class="k">%pip install</span> "psycopg[binary]&gt;=3.1.0" --quiet
+<span class="c"># then, after restartPython:</span>
+<span class="k">%run</span> ../_setup          <span class="c"># gives get_connection(), PG_SCHEMA, user_email, w</span>
+conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · search_path = your schema</span>
+<span class="c"># … create the 5 tables and INSERT deterministic rows (seed 1867) …</span></code></pre>
+    </div>
+    <div class="path-genie">
+      <div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <p>Open a fresh Genie Code chat on a serverless notebook and paste this (the full verbatim prompt
+        is in the exercise <code>README.md</code>):</p>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>
+        Generate a Databricks notebook that <code>%run ../_setup</code>, opens <code>get_connection()</code>,
+        and loads a synthetic CIBC Capital Markets dataset into my Postgres schema: five tables
+        (<code>clients, instruments, market_prices, positions, trades</code>) with the exact columns from
+        the workshop data model, deterministic with <code>random.Random(1867)</code>, 9 Canadian issuers
+        with coverage officers, and Air Canada (<code>CL-AC</code>) seeded with a large WTI + heating-oil
+        long so its energy exposure dominates. Verify with row counts and Air Canada's gross notional by
+        instrument.</div>
+    </div>
+
+    <div class="note check"><b>✓ Check</b> — 9 clients, 18 instruments, 540 prices, ~76 positions, 600
+      trades; Air Canada's gross notional is dominated by WTI + heating oil (~$32M of ~$33M).</div>
+    <p style="font-size:.95rem;color:var(--muted)">Part B (optional): connect an external tool — see
+      <code>labs/ex2-authentication/VSCODE_CONNECT.md</code> for the native-password path.</p>
+  </section>
+
+  <!-- ============ DATA API ============ -->
+  <section class="ex" id="dataapi">
+    <div class="exhead"><span class="exnum">3</span><h2>Data APIs — how apps reach Lakebase</h2></div>
+    <span class="tag">REST vs JDBC</span>
+    <p>Applications reach your branch two ways: a stateless <b>REST</b> data API (great for serverless /
+      edge front ends, any language, per-request auth) or a pooled <b>JDBC</b> connection (lowest
+      latency for chatty JVM services). Same data, two access patterns.</p>
+    <figure>
+      <svg viewBox="0 0 880 240" role="img" aria-label="A serverless app reaches the Lakebase branch over an HTTPS REST data API with a bearer token; a JVM service reaches the same branch over a pooled JDBC connection.">
+        <defs><marker id="da" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+        <rect class="d-box" x="16" y="34" width="168" height="58" rx="9"/>
+        <text class="d-tb" x="100" y="58" text-anchor="middle">Serverless / edge app</text>
+        <text class="d-ts" x="100" y="76" text-anchor="middle">any language, no driver</text>
+        <rect class="d-box" x="16" y="150" width="168" height="58" rx="9"/>
+        <text class="d-tb" x="100" y="174" text-anchor="middle">JVM service</text>
+        <text class="d-ts" x="100" y="192" text-anchor="middle">pooled connections</text>
+        <rect class="d-accent" x="300" y="34" width="196" height="58" rx="9"/>
+        <text class="d-tb" x="398" y="58" text-anchor="middle">REST data API</text>
+        <text class="d-ts" x="398" y="76" text-anchor="middle">HTTPS · OAuth bearer · JSON</text>
+        <rect class="d-accent" x="300" y="150" width="196" height="58" rx="9"/>
+        <text class="d-tb" x="398" y="174" text-anchor="middle">JDBC</text>
+        <text class="d-ts" x="398" y="192" text-anchor="middle">postgresql driver · sslmode</text>
+        <line class="d-line" x1="184" y1="63" x2="298" y2="63" marker-end="url(#da)"/>
+        <text class="d-lbl" x="241" y="55" text-anchor="middle">stateless req</text>
+        <line class="d-line" x1="184" y1="179" x2="298" y2="179" marker-end="url(#da)"/>
+        <text class="d-lbl" x="241" y="171" text-anchor="middle">persistent</text>
+        <rect class="d-lake" x="612" y="70" width="252" height="100" rx="10"/>
+        <text class="d-lbl" x="738" y="96" text-anchor="middle" style="fill:var(--lakebase)">◆ YOUR LAKEBASE BRANCH</text>
+        <text class="d-tb" x="738" y="126" text-anchor="middle">managed Postgres</text>
+        <text class="d-ts" x="738" y="145" text-anchor="middle">clients · positions · trades</text>
+        <line class="d-line" x1="496" y1="63" x2="640" y2="108" marker-end="url(#da)"/>
+        <line class="d-line" x1="496" y1="179" x2="640" y2="134" marker-end="url(#da)"/>
+      </svg>
+      <figcaption>Both paths read the same branch. <b>REST</b> for stateless/edge and quick integrations;
+        <b>JDBC</b> for pooled, low-latency JVM services.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>access path</span></div>
+    </figure>
+    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
+      <p>Run <code>labs/data-api/Data_API.py</code> — it hits your branch over the REST Data API and over
+        JDBC (Spark JDBC read), then compares. <em>The REST base URL is auto-discovered from
+        <code>get_data_api().status.url</code>; if the Data API isn't enabled on the project the notebook
+        skips REST gracefully and the JDBC path still runs.</em></p></div>
+    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Build a notebook that reads my
+        Lakebase branch two ways: (A) the PostgREST-compatible <b>Data API</b> — discover its URL from
+        <code>get_data_api().status.url</code>, GET <code>{url}/{my schema}/clients?select=…</code>
+        (schema in the path) with my <b>workspace OAuth token</b> as the Bearer; and (B) a JDBC read
+        (build the <code>jdbc:postgresql://…?sslmode=require</code> URL, password = the DB credential,
+        read via Spark JDBC). Compare REST vs JDBC and say when to use each. (Full prompt in the
+        exercise README.)</div></div>
+    <div class="note"><b>Facilitator, once per project:</b> enable the Data API on the project's Data API
+      page and add each attendee's schema to its <code>db_schemas</code> — otherwise Part A returns 400/404
+      (the JDBC path is unaffected).</div>
+    <div class="note check"><b>✓ Check</b> — you get rows back over the Data API (JSON) and over JDBC,
+      and can state when you'd pick each (and which token each uses).</div>
+  </section>
+
+  <!-- ============ DELTA -> LAKEBASE ============ -->
+  <section class="ex" id="deltalb">
+    <div class="exhead"><span class="exnum">4</span><h2>Delta → Lakebase sync (reverse ETL)</h2></div>
+    <span class="tag">synced tables</span>
+    <p>Take a lakehouse-curated <b>Delta</b> table (say a nightly client reference / risk-limits table)
+      and continuously sync it into your branch as an operational <code>lb_*</code> table, so the
+      trading app reads fresh, governed data over Postgres.</p>
+    <figure>
+      <svg viewBox="0 0 880 200" role="img" aria-label="A Delta table in Unity Catalog with a primary key and change data feed is synced by a serverless pipeline into an lb-prefixed table on the attendee's Lakebase branch.">
+        <defs><marker id="dl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+          <marker id="dll" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
+        <rect class="d-accent" x="16" y="66" width="220" height="66" rx="9"/>
+        <text class="d-tb" x="126" y="90" text-anchor="middle">client_reference</text>
+        <text class="d-ts" x="126" y="108" text-anchor="middle">Delta · UC · PK + CDF</text>
+        <rect class="d-box" x="332" y="66" width="200" height="66" rx="9"/>
+        <text class="d-tb" x="432" y="90" text-anchor="middle">synced-table pipeline</text>
+        <text class="d-ts" x="432" y="108" text-anchor="middle">serverless · SNAPSHOT/TRIGGERED/CONT.</text>
+        <rect class="d-lake" x="628" y="60" width="236" height="80" rx="10"/>
+        <text class="d-lbl" x="746" y="84" text-anchor="middle" style="fill:var(--lakebase)">◆ YOUR LAKEBASE BRANCH</text>
+        <text class="d-tb" x="746" y="112" text-anchor="middle">lb_client_reference</text>
+        <line class="d-line" x1="236" y1="99" x2="330" y2="99" marker-end="url(#dl)"/>
+        <text class="d-lbl" x="283" y="91" text-anchor="middle">sync</text>
+        <line class="d-line-lake" x1="532" y1="99" x2="626" y2="99" marker-end="url(#dll)"/>
+        <text class="d-lbl" x="579" y="91" text-anchor="middle" style="fill:var(--lakebase)">CDF</text>
+      </svg>
+      <figcaption>A synced table replicates the Delta source into your branch as <code>lb_*</code> via a
+        serverless pipeline (CDF-driven, incremental). Update the Delta row → re-sync → it lands in Lakebase.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>Delta source</span></div>
+    </figure>
+    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
+      <p>Run <code>labs/delta-to-lakebase-sync/Delta_To_Lakebase.py</code> — builds the Delta source
+        (PK + CDF), creates a Lakebase <b>synced table</b> into your branch, verifies the row count,
+        then updates a row and re-syncs. (~minutes to provision the sync pipeline the first time.)</p></div>
+    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Create a curated Delta table with a
+        PK + Change Data Feed, then create a Lakebase <b>synced table</b> (<code>lb_client_reference</code>)
+        into my branch, verify over psycopg that the rows match, update a row in Delta and re-sync to
+        show it propagate. Explain SNAPSHOT / TRIGGERED / CONTINUOUS. (Full prompt in the README.)</div></div>
+    <div class="note check"><b>✓ Check</b> — <code>lb_client_reference</code> exists on your branch with
+      the same rows as the Delta source; a Delta update propagates on re-sync.</div>
+  </section>
+
+  <!-- ============ LAKEBASE -> DELTA SCD1 ============ -->
+  <section class="ex" id="lbscd1">
+    <div class="exhead"><span class="exnum">5</span><h2>Lakebase → Delta (SCD Type 1 pipeline)</h2></div>
+    <span class="tag">CDC · Lakeflow · SCD1</span>
+    <p>The round trip: the trading app mutates <code>lb_*</code> tables all day; the lakehouse needs the
+      <b>current</b> picture for risk analytics. Capture the changes and land them in Delta with a
+      <b>Lakeflow (DLT) AUTO CDC</b> flow applying <b>SCD Type 1</b> (latest value wins, no history).</p>
+    <figure>
+      <svg viewBox="0 0 880 210" role="img" aria-label="Changes to the lb-prefixed Lakebase tables are extracted by watermark into an append-only bronze Delta table, then a Lakeflow DLT AUTO CDC flow applies SCD type 1 to produce current-state Delta tables.">
+        <defs><marker id="sc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+          <marker id="scl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
+        <rect class="d-lake" x="16" y="66" width="200" height="72" rx="10"/>
+        <text class="d-lbl" x="116" y="90" text-anchor="middle" style="fill:var(--lakebase)">◆ LAKEBASE BRANCH</text>
+        <text class="d-tb" x="116" y="112" text-anchor="middle">lb_positions · lb_limits</text>
+        <text class="d-ts" x="116" y="128" text-anchor="middle">app mutations (updated_at)</text>
+        <rect class="d-box" x="304" y="66" width="184" height="72" rx="9"/>
+        <text class="d-tb" x="396" y="94" text-anchor="middle">bronze Delta</text>
+        <text class="d-ts" x="396" y="112" text-anchor="middle">append-only changes</text>
+        <text class="d-ts" x="396" y="127" text-anchor="middle">watermark extract</text>
+        <rect class="d-accent" x="576" y="60" width="288" height="84" rx="9"/>
+        <text class="d-tb" x="720" y="88" text-anchor="middle">Lakeflow (DLT) AUTO CDC</text>
+        <text class="d-ts" x="720" y="107" text-anchor="middle">stored_as_scd_type = 1</text>
+        <text class="d-ts" x="720" y="124" text-anchor="middle">→ positions_current · limits_current</text>
+        <line class="d-line-lake" x1="216" y1="102" x2="302" y2="102" marker-end="url(#scl)"/>
+        <text class="d-lbl" x="259" y="94" text-anchor="middle" style="fill:var(--lakebase)">extract</text>
+        <line class="d-line" x1="488" y1="102" x2="574" y2="102" marker-end="url(#sc)"/>
+        <text class="d-lbl" x="531" y="94" text-anchor="middle">AUTO CDC</text>
+      </svg>
+      <figcaption>Changed <code>lb_*</code> rows are extracted (by watermark) into append-only bronze
+        Delta, then a DLT AUTO CDC flow applies <b>SCD Type 1</b> — one current row per key — for analytics.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase source</span><span><span class="swatch" style="background:var(--accent)"></span>Lakeflow pipeline</span></div>
+    </figure>
+    <div class="note wait"><b>Honest note:</b> Lakebase has no Delta-style change feed today, so this uses
+      the GA pattern — a watermark/incremental extract of the <code>lb_*</code> tables into bronze,
+      then DLT AUTO CDC for SCD1. (If your workspace gets native Lakebase→Delta CDC, swap the extract step.)</div>
+    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook + pipeline</div>
+      <p>Run <code>labs/lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py</code> (seeds + mutates
+        <code>lb_*</code>, extracts to bronze, creates the Lakeflow pipeline from
+        <code>scd1_pipeline.py</code>) and confirm each key shows only its latest value.</p></div>
+    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Extract changed rows from my Lakebase
+        <code>lb_*</code> tables (by <code>updated_at</code> watermark) into an append-only bronze Delta
+        table, then build a Lakeflow DLT AUTO CDC flow with <code>stored_as_scd_type=1</code> keyed by
+        PK to produce current-state Delta tables; prove that an update leaves one latest row per key.
+        (Full prompt in the README.)</div></div>
+    <div class="note check"><b>✓ Check</b> — after mutating a position/limit, the SCD1 target has exactly
+      one row per key showing the latest value.</div>
+  </section>
+
+  <!-- ============ EX3 ============ -->
+  <section class="ex" id="ex3">
+    <div class="exhead"><span class="exnum">6</span><h2>Online feature store &amp; the Coverage Desk Assistant</h2></div>
+    <span class="tag">feature serving · MLflow · LangChain</span>
+    <p>Turn the desk's data into <b>per-client risk features</b>, publish them to Lakebase for
+      low-latency serving, expose them through a <b>Feature Serving endpoint</b>, and build a chatbot
+      whose feature-lookup <b>tool</b> calls that endpoint. The diagram shows what gets spun up and how
+      each piece relates to Lakebase.</p>
+
+    <figure>
+      <svg viewBox="0 0 900 400" role="img" aria-label="Feature store architecture: a Spark-computed offline Delta feature table is published through a serverless sync pipeline into the Lakebase online store; a FeatureSpec on top serves it through a Feature Serving endpoint, which the Coverage Desk Assistant's lookup tool calls via the MLflow deploy client.">
+        <defs>
+          <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+          </marker>
+          <marker id="a3l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/>
+          </marker>
+        </defs>
+        <!-- BUILD lane label -->
+        <text class="d-lbl" x="16" y="24">BUILD  ▸  offline → Lakebase</text>
+        <!-- Row 1 -->
+        <rect class="d-box" x="16"  y="40" width="176" height="66" rx="9"/>
+        <text class="d-tb" x="104" y="68" text-anchor="middle">Capital-markets data</text>
+        <text class="d-ts" x="104" y="86" text-anchor="middle">Spark DataFrame</text>
+
+        <rect class="d-accent" x="248" y="40" width="176" height="66" rx="9"/>
+        <text class="d-tb" x="336" y="64" text-anchor="middle">client_risk_features</text>
+        <text class="d-ts" x="336" y="81" text-anchor="middle">Delta · UC · PK + CDF</text>
+
+        <rect class="d-box" x="480" y="40" width="176" height="66" rx="9"/>
+        <text class="d-tb" x="568" y="64" text-anchor="middle">Sync pipeline</text>
+        <text class="d-ts" x="568" y="81" text-anchor="middle">serverless Lakeflow</text>
+
+        <!-- Lakebase online store (highlight) -->
+        <rect class="d-lake" x="712" y="34" width="172" height="150" rx="10"/>
+        <text class="d-lbl" x="798" y="54" text-anchor="middle" style="fill:var(--lakebase)">◆ LAKEBASE</text>
+        <text class="d-tb" x="798" y="98" text-anchor="middle">Online store</text>
+        <text class="d-ts" x="798" y="116" text-anchor="middle">client_risk_</text>
+        <text class="d-ts" x="798" y="131" text-anchor="middle">features_online</text>
+        <text class="d-ts" x="798" y="158" text-anchor="middle">managed Postgres</text>
+
+        <!-- arrows row1 -->
+        <line class="d-line" x1="192" y1="73" x2="246" y2="73" marker-end="url(#a3)"/>
+        <text class="d-lbl" x="219" y="66" text-anchor="middle">aggregate</text>
+        <line class="d-line" x1="424" y1="73" x2="478" y2="73" marker-end="url(#a3)"/>
+        <text class="d-lbl" x="451" y="66" text-anchor="middle">publish_table</text>
+        <line class="d-line-lake" x1="656" y1="73" x2="710" y2="73" marker-end="url(#a3l)"/>
+        <text class="d-lbl" x="683" y="66" text-anchor="middle" style="fill:var(--lakebase)">CDF sync</text>
+
+        <!-- SERVE lane -->
+        <text class="d-lbl" x="16" y="248">SERVE  ▸  Lakebase → agent</text>
+        <!-- down connector from online store to serve lane -->
+        <path class="d-line-lake" d="M798,184 L798,214 L336,214 L336,262" marker-end="url(#a3l)"/>
+        <text class="d-lbl" x="560" y="208" text-anchor="middle" style="fill:var(--lakebase)">FeatureSpec → serves online features</text>
+
+        <rect class="d-accent" x="248" y="264" width="176" height="66" rx="9"/>
+        <text class="d-tb" x="336" y="288" text-anchor="middle">Feature Serving</text>
+        <text class="d-ts" x="336" y="305" text-anchor="middle">endpoint (Model Serving)</text>
+
+        <rect class="d-box" x="480" y="264" width="176" height="66" rx="9"/>
+        <text class="d-tb" x="568" y="288" text-anchor="middle">lookup_client_risk</text>
+        <text class="d-ts" x="568" y="305" text-anchor="middle">tool · MLflow deploy client</text>
+
+        <rect class="d-box" x="700" y="264" width="184" height="66" rx="9"/>
+        <text class="d-tb" x="792" y="288" text-anchor="middle">Coverage Desk Assistant</text>
+        <text class="d-ts" x="792" y="305" text-anchor="middle">LangChain + ChatDatabricks</text>
+
+        <line class="d-line" x1="424" y1="297" x2="478" y2="297" marker-end="url(#a3)"/>
+        <text class="d-lbl" x="451" y="290" text-anchor="middle">predict()</text>
+        <line class="d-line" x1="700" y1="297" x2="658" y2="297" marker-end="url(#a3)"/>
+        <text class="d-lbl" x="679" y="290" text-anchor="middle">calls</text>
+      </svg>
+      <figcaption>The offline Delta table is <b>published into Lakebase</b> (amber) via a serverless sync
+        pipeline; a FeatureSpec serves those online features through an endpoint that the chatbot's tool
+        calls with the MLflow deploy client.</figcaption>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase piece</span>
+        <span><span class="swatch" style="background:var(--accent)"></span>feature-store surface</span>
+      </div>
+    </figure>
+
+    <div class="note wait"><b>⏳ Two long steps (expected, not a hang):</b> <code>publish_table</code>
+      stands up the sync pipeline (~15–20 min the first time) and the Feature Serving endpoint takes
+      ~10–15 min to provision. Both are fixed overhead regardless of data size — kick them off and use
+      the time to talk through the architecture above.</div>
+
+    <div class="path-notebook">
+      <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
+      <p>Run <code>Feature_Store.py</code> first (it creates the endpoint), then
+        <code>Coverage_Desk_Chatbot.py</code>. The heart of it:</p>
+      <pre><code>fe.create_table(name=FEATURE_TABLE, primary_keys=["client_id"], df=features)
+<span class="c"># enable CDF, then publish into your Lakebase project</span>
+fe.publish_table(online_store=fe.get_online_store(name=PROJECT_ID),
+                 source_table_name=FEATURE_TABLE, online_table_name=ONLINE_TABLE)
+fe.create_feature_spec(name=FEATURE_SPEC,
+     features=[FeatureLookup(table_name=FEATURE_TABLE, lookup_key="client_id")])
+w.serving_endpoints.create_and_wait(name=EP, config=EndpointCoreConfigInput(
+     <span class="k">name=EP</span>,   <span class="c"># required by the SDK — omitting it errors</span>
+     served_entities=[ServedEntityInput(entity_name=FEATURE_SPEC,
+         workload_size="Small", scale_to_zero_enabled=True)]))</code></pre>
+      <p>The chatbot's tool is the exact lookup — an MLflow call the LLM decides when to make:</p>
+      <pre><code><span class="k">@tool</span>
+def lookup_client_risk(client: str) -&gt; str:
+    <span class="s">"""Live risk features (exposure, PnL, volatility, risk tier)."""</span>
+    return get_deploy_client("databricks").predict(endpoint=EP,
+        inputs={"dataframe_records":[{"client_id": resolve(client)}]})</code></pre>
+    </div>
+    <div class="path-genie">
+      <div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <p>Two prompts (fresh chat each; full versions in the exercise <code>README.md</code>):</p>
+      <div class="prompt"><span class="lbl">Genie — feature store</span>
+        Build a capital-markets online feature store: a Delta table
+        <code>client_risk_features</code> (one row per client, PK + CDF) with exposure / PnL /
+        concentration / volatility / <code>risk_tier</code>, seed Air Canada HIGH, publish it to my
+        Lakebase project with <code>FeatureEngineeringClient.publish_table</code>, create a
+        <code>FeatureSpec</code> with a <code>FeatureLookup</code> on <code>client_id</code>, stand up a
+        <b>Feature Serving endpoint</b> (pass <code>name=</code> in <code>EndpointCoreConfigInput</code>),
+        and query it with the MLflow deploy client for <code>CL-AC</code>.</div>
+      <div class="prompt"><span class="lbl">Genie — chatbot</span>
+        Build a LangChain "Coverage Desk Assistant" with <code>ChatDatabricks</code> (subclass to strip
+        <code>temperature</code>), a <code>@tool</code> that calls my Feature Serving endpoint via the
+        MLflow deploy client, and a tool-calling agent that always looks a client up before answering.
+        Demo: "What's Air Canada's risk profile and should I worry about their oil exposure?"</div>
+    </div>
+
+    <div class="note check"><b>✓ Check</b> — Air Canada is <code>risk_tier=HIGH</code>; the online table
+      appears in Lakebase; the agent's trace shows <code>lookup_client_risk</code> firing and the answer
+      reflects the large energy exposure.</div>
+  </section>
+
+  <!-- ============ EX4 ============ -->
+  <section class="ex" id="ex4">
+    <div class="exhead"><span class="exnum">7</span><h2>Give the assistant a memory</h2></div>
+    <span class="tag">LangGraph · PostgresSaver · Lakebase</span>
+    <p>The assistant currently forgets each turn. Back it with a LangGraph <b>PostgresSaver</b>
+      checkpointer pointed at Lakebase, and its conversation state becomes durable — surviving turns,
+      new processes, and sessions — because the memory lives in Postgres, not the process. The diagram
+      shows where that memory sits.</p>
+
+    <figure>
+      <svg viewBox="0 0 900 380" role="img" aria-label="Agentic memory architecture: a coverage officer messages a one-node LangGraph agent that invokes ChatDatabricks; the agent checkpoints its state each turn through a PostgresSaver into Lakebase Postgres, which holds the four checkpoint tables keyed by thread_id.">
+        <defs>
+          <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+          </marker>
+          <marker id="a4l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/>
+          </marker>
+        </defs>
+        <!-- top row: officer -> agent -> LLM -->
+        <rect class="d-box" x="20" y="40" width="150" height="60" rx="9"/>
+        <text class="d-tb" x="95" y="66" text-anchor="middle">Coverage officer</text>
+        <text class="d-ts" x="95" y="83" text-anchor="middle">chat turn</text>
+
+        <rect class="d-accent" x="240" y="34" width="180" height="72" rx="9"/>
+        <text class="d-tb" x="330" y="62" text-anchor="middle">LangGraph agent</text>
+        <text class="d-ts" x="330" y="80" text-anchor="middle">StateGraph · 1 node</text>
+        <text class="d-ts" x="330" y="95" text-anchor="middle">compiled w/ checkpointer</text>
+
+        <rect class="d-box" x="490" y="40" width="170" height="60" rx="9"/>
+        <text class="d-tb" x="575" y="66" text-anchor="middle">ChatDatabricks</text>
+        <text class="d-ts" x="575" y="83" text-anchor="middle">pay-per-token LLM</text>
+
+        <line class="d-line" x1="170" y1="70" x2="238" y2="70" marker-end="url(#a4)"/>
+        <text class="d-lbl" x="204" y="63" text-anchor="middle">message</text>
+        <line class="d-line" x1="420" y1="70" x2="488" y2="70" marker-end="url(#a4)"/>
+        <text class="d-lbl" x="454" y="63" text-anchor="middle">invoke</text>
+        <line class="d-line" x1="488" y1="86" x2="422" y2="86" marker-end="url(#a4)"/>
+        <text class="d-lbl" x="454" y="99" text-anchor="middle">reply</text>
+
+        <!-- down to checkpointer -->
+        <line class="d-line-lake" x1="330" y1="106" x2="330" y2="150" marker-end="url(#a4l)"/>
+        <text class="d-lbl" x="342" y="132" style="fill:var(--lakebase)">checkpoint state each turn</text>
+
+        <rect class="d-accent" x="240" y="152" width="180" height="60" rx="9"/>
+        <text class="d-tb" x="330" y="178" text-anchor="middle">PostgresSaver</text>
+        <text class="d-ts" x="330" y="195" text-anchor="middle">LangGraph checkpointer</text>
+
+        <line class="d-line-lake" x1="420" y1="182" x2="486" y2="182" marker-end="url(#a4l)"/>
+        <text class="d-lbl" x="453" y="175" text-anchor="middle" style="fill:var(--lakebase)">writes</text>
+
+        <!-- Lakebase box with 4 tables -->
+        <rect class="d-lake" x="488" y="140" width="392" height="200" rx="10"/>
+        <text class="d-lbl" x="508" y="162" style="fill:var(--lakebase)">◆ LAKEBASE · managed Postgres</text>
+        <g>
+          <rect class="d-box" x="508" y="176" width="168" height="42" rx="7"/>
+          <text class="d-t" x="592" y="202" text-anchor="middle">checkpoints</text>
+          <rect class="d-box" x="692" y="176" width="168" height="42" rx="7"/>
+          <text class="d-t" x="776" y="202" text-anchor="middle">checkpoint_writes</text>
+          <rect class="d-box" x="508" y="228" width="168" height="42" rx="7"/>
+          <text class="d-t" x="592" y="254" text-anchor="middle">checkpoint_blobs</text>
+          <rect class="d-box" x="692" y="228" width="168" height="42" rx="7"/>
+          <text class="d-t" x="776" y="254" text-anchor="middle">checkpoint_migrations</text>
+        </g>
+        <text class="d-ts" x="684" y="298" text-anchor="middle">the messages live in checkpoint_blobs</text>
+        <text class="d-ts" x="684" y="320" text-anchor="middle" style="fill:var(--lakebase)">memory keyed by thread_id — survives turns &amp; sessions</text>
+      </svg>
+      <figcaption>Each turn, the agent writes its state through <b>PostgresSaver</b> into
+        <b>Lakebase</b> (amber). Reuse the <code>thread_id</code> — even from a new process tomorrow —
+        and the assistant picks up where it left off.</figcaption>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase piece</span>
+        <span><span class="swatch" style="background:var(--accent)"></span>agent runtime</span>
+      </div>
+    </figure>
+
+    <div class="path-notebook">
+      <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
+      <p>Run <code>labs/ex4-agentic-memory/Agent_Memory.py</code>. Two Lakebase gotchas are baked in —
+        connect with keyword args (not a URL), and subclass <code>ChatDatabricks</code> to drop
+        <code>temperature</code> (Claude endpoints reject it):</p>
+      <pre><code>conn = psycopg.connect(host=host, dbname="databricks_postgres",
+    user=user_email, password=cred.token, sslmode="require",
+    autocommit=True, options=f"-c search_path={PG_SCHEMA},public")
+checkpointer = PostgresSaver(conn); checkpointer.setup()   <span class="c"># makes the 4 tables</span>
+agent = StateGraph(MessagesState)...compile(checkpointer=checkpointer)</code></pre>
+    </div>
+    <div class="path-genie">
+      <div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>
+        Build a LangGraph agent (the "Coverage Desk Assistant") with persistent memory in my Lakebase
+        Postgres: mint an OAuth credential via the SDK, connect with <b>psycopg keyword args</b> (never a
+        URL), use <code>ChatDatabricks</code> subclassed to pop <code>temperature</code>, wrap a
+        <code>PostgresSaver</code> and call <code>.setup()</code>, compile a one-node
+        <code>StateGraph(MessagesState)</code>, then prove memory across two turns on one
+        <code>thread_id</code> and inspect the <code>checkpoint%</code> tables.</div>
+    </div>
+
+    <div class="note check"><b>✓ Check</b> — Turn 2 recalls what Turn 1 said on the same
+      <code>thread_id</code>; the four <code>checkpoint%</code> tables exist; deserializing a blob finds
+      the remembered client.</div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>CIBC Capital Markets — Lakebase Workshop · one managed Postgres for OLTP data, feature
+      serving, and agent memory.</span>
+    <span>Full prompts, reference notebooks, and the facilitator guide ship alongside this page.</span>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    var nb=document.getElementById('btn-nb'), ge=document.getElementById('btn-ge');
+    function set(mode){
+      document.body.dataset.path=mode;
+      var g=mode==='genie';
+      ge.setAttribute('aria-pressed',g?'true':'false');
+      nb.setAttribute('aria-pressed',g?'false':'true');
+      try{localStorage.setItem('lakebase-lab-path',mode);}catch(e){}
+    }
+    nb.addEventListener('click',function(){set('notebook');});
+    ge.addEventListener('click',function(){set('genie');});
+    var saved='notebook';
+    try{saved=localStorage.getItem('lakebase-lab-path')||'notebook';}catch(e){}
+    set(saved);
+  })();
+</script>

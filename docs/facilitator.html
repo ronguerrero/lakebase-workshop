@@ -1,0 +1,325 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lakebase Lab · Facilitator Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#F1F4F5; --paper:#FFFFFF; --ink:#16212B; --muted:#586673;
+    --line:#DEE5E9; --line-strong:#C7D1D8;
+    --accent:#0F6E78; --accent-weak:#E4F0F1; --accent-ink:#0B4F57;
+    --lakebase:#B96C13; --lakebase-weak:#FBEEDD;
+    --good:#2E7D46; --warn:#B26A00; --high:#C0392B;
+    --code-bg:#0E1A21; --code-ink:#DCE6EA; --code-line:#22333D;
+    --display:"Fraunces",Georgia,"Times New Roman",serif;
+    --body:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --maxw:840px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0C131A; --paper:#131E27; --ink:#E7EEF3; --muted:#93A2AD;
+    --line:#233039; --line-strong:#32424D;
+    --accent:#39A8B2; --accent-weak:#122A2E; --accent-ink:#8FD3D9;
+    --lakebase:#E0A24C; --lakebase-weak:#2A2013;
+    --good:#5FB87A; --warn:#E0A24C; --high:#E27567;
+    --code-bg:#0A141A; --code-ink:#D6E2E8; --code-line:#1E2E37;
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0C131A; --paper:#131E27; --ink:#E7EEF3; --muted:#93A2AD;
+    --line:#233039; --line-strong:#32424D;
+    --accent:#39A8B2; --accent-weak:#122A2E; --accent-ink:#8FD3D9;
+    --lakebase:#E0A24C; --lakebase-weak:#2A2013;
+    --good:#5FB87A; --warn:#E0A24C; --high:#E27567;
+    --code-bg:#0A141A; --code-ink:#D6E2E8; --code-line:#1E2E37;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:20px}
+  a{color:var(--accent-ink)}
+  header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .top .wrap{display:flex;align-items:center;gap:14px;min-height:56px;flex-wrap:wrap;padding-block:8px}
+  .brand{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .brand b{color:var(--accent);font-weight:500}
+  nav.jump{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+  nav.jump a{font-family:var(--mono);font-size:12px;text-decoration:none;color:var(--muted);padding:5px 9px;border-radius:6px}
+  nav.jump a:hover{color:var(--ink);background:var(--paper)}
+  .hero{padding-block:50px 28px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--lakebase)}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(2rem,5.5vw,3rem);line-height:1.05;margin:.35em 0 .3em;letter-spacing:-.01em;text-wrap:balance}
+  .lede{font-size:1.1rem;color:var(--muted);max-width:62ch}
+  .meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:20px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:500}
+  section.step{padding-block:38px;border-bottom:1px solid var(--line)}
+  .sh{display:flex;align-items:baseline;gap:13px;margin-bottom:4px}
+  .snum{font-family:var(--mono);font-size:13px;color:#fff;background:var(--accent);width:29px;height:29px;border-radius:7px;display:grid;place-items:center;flex:none;font-weight:500}
+  h2{font-family:var(--display);font-weight:600;font-size:1.7rem;margin:0;letter-spacing:-.01em;text-wrap:balance}
+  h3{font-weight:600;font-size:1.02rem;margin:24px 0 8px}
+  p{margin:.6em 0}
+  pre{background:var(--code-bg);color:var(--code-ink);border:1px solid var(--code-line);border-radius:10px;padding:15px 17px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.55;margin:10px 0}
+  pre .c{color:#7FA8B0}
+  pre .k{color:#E0A24C}
+  code{font-family:var(--mono);font-size:.9em;background:var(--accent-weak);color:var(--accent-ink);padding:1px 5px;border-radius:5px}
+  pre code{background:none;color:inherit;padding:0}
+  .note{border-left:3px solid var(--accent);background:var(--accent-weak);border-radius:0 10px 10px 0;padding:12px 16px;margin:16px 0;font-size:.96rem}
+  .note.opt{border-left-color:var(--lakebase);background:var(--lakebase-weak)}
+  .note.warn{border-left-color:var(--warn);background:var(--lakebase-weak)}
+  .note.check{border-left-color:var(--good);background:transparent}
+  .note b{font-weight:600}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.93rem}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .tag{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line-strong);border-radius:20px;padding:2px 10px}
+  ol.steps{margin:12px 0;padding:0;counter-reset:s;list-style:none}
+  ol.steps>li{position:relative;padding-left:32px;margin:12px 0}
+  ol.steps>li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;font-family:var(--mono);font-size:12px;color:var(--accent-ink);background:var(--accent-weak);width:22px;height:22px;border-radius:50%;display:grid;place-items:center}
+  figure{margin:22px 0;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px}
+  figure svg{display:block;width:100%;height:auto;color:var(--ink)}
+  figcaption{font-size:.9rem;color:var(--muted);margin-top:12px;text-align:center;text-wrap:balance}
+  .legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .d-box{fill:var(--paper);stroke:var(--line-strong);stroke-width:1.4}
+  .d-lake{fill:var(--lakebase-weak);stroke:var(--lakebase);stroke-width:2}
+  .d-accent{fill:var(--accent-weak);stroke:var(--accent);stroke-width:1.4}
+  .d-tb{fill:var(--ink);font-family:var(--body);font-size:13px;font-weight:600}
+  .d-t{fill:var(--ink);font-family:var(--body);font-size:12px}
+  .d-ts{fill:var(--muted);font-family:var(--mono);font-size:10.5px}
+  .d-lbl{fill:var(--muted);font-family:var(--mono);font-size:11px}
+  .d-line{stroke:var(--muted);stroke-width:1.5;fill:none}
+  footer{padding-block:36px 60px;color:var(--muted);font-size:.9rem}
+  @media (max-width:520px){nav.jump{display:none}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand">CIBC CM · Lakebase Lab · <b>Facilitator</b></span>
+    <nav class="jump">
+      <a href="#model">Model</a><a href="#prereq">Prereqs</a><a href="#setup">Setup</a>
+      <a href="#scale">Scale</a><a href="#run">Run of show</a><a href="#cleanup">Cleanup</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="eyebrow">Facilitator setup guide</div>
+    <h1>Prep the room before the desk opens</h1>
+    <p class="lede">Everything you run before attendees arrive: stand up one shared Lakebase project,
+      give every attendee their own isolated <b>branch</b>, grant access, and (if the room is large)
+      split across extra projects. One script does the heavy lifting.</p>
+    <div class="meta">
+      <span>Setup time · <b>~15 min</b> + branch provisioning</span>
+      <span>You need · <b>workspace admin</b></span>
+      <span>Script · <b>scripts/facilitator_setup.py</b></span>
+    </div>
+  </section>
+
+  <!-- MODEL -->
+  <section class="step" id="model">
+    <div class="sh"><span class="snum" style="background:var(--lakebase)">◆</span><h2>The model: one project, a branch per attendee</h2></div>
+    <p>All attendees share <b>one Lakebase project</b>, but each works on their <b>own branch</b> — a
+      Git-like, copy-on-write, fully-isolated clone of the project with its own compute endpoint. The
+      exercises connect to the attendee's own branch automatically (<code>labs/_setup.py</code> derives
+      the branch id from their username). Nobody steps on anyone else's data, and each person can
+      freely create, load, and even break things on their branch.</p>
+
+    <figure>
+      <svg viewBox="0 0 900 380" role="img" aria-label="One shared Lakebase project holds a production branch; the facilitator forks one branch per attendee off production, each with its own primary endpoint. If attendees exceed the project's branch limit, a second project is created and attendees are split across projects.">
+        <defs><marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
+        <!-- Project 1 (Lakebase) -->
+        <rect class="d-lake" x="16" y="34" width="560" height="330" rx="12"/>
+        <text class="d-lbl" x="36" y="58" style="fill:var(--lakebase)">◆ LAKEBASE PROJECT · cibc-cm-workshop</text>
+        <!-- production -->
+        <rect class="d-accent" x="212" y="74" width="168" height="52" rx="8"/>
+        <text class="d-tb" x="296" y="98" text-anchor="middle">production</text>
+        <text class="d-ts" x="296" y="114" text-anchor="middle">main branch (facilitator)</text>
+        <!-- attendee branches -->
+        <g>
+          <rect class="d-box" x="44"  y="210" width="152" height="70" rx="8"/>
+          <text class="d-tb" x="120" y="236" text-anchor="middle">br · ron-guerrero</text>
+          <text class="d-ts" x="120" y="254" text-anchor="middle">primary endpoint</text>
+          <text class="d-ts" x="120" y="269" text-anchor="middle">isolated copy</text>
+          <rect class="d-box" x="220" y="210" width="152" height="70" rx="8"/>
+          <text class="d-tb" x="296" y="236" text-anchor="middle">br · sofia-martins</text>
+          <text class="d-ts" x="296" y="254" text-anchor="middle">primary endpoint</text>
+          <text class="d-ts" x="296" y="269" text-anchor="middle">isolated copy</text>
+          <rect class="d-box" x="396" y="210" width="152" height="70" rx="8"/>
+          <text class="d-tb" x="472" y="236" text-anchor="middle">br · david-chen</text>
+          <text class="d-ts" x="472" y="254" text-anchor="middle">primary endpoint</text>
+          <text class="d-ts" x="472" y="269" text-anchor="middle">isolated copy</text>
+        </g>
+        <path class="d-line" style="stroke:var(--lakebase)" d="M270,126 L120,206" marker-end="url(#fa)"/>
+        <path class="d-line" style="stroke:var(--lakebase)" d="M296,126 L296,206" marker-end="url(#fa)"/>
+        <path class="d-line" style="stroke:var(--lakebase)" d="M322,126 L472,206" marker-end="url(#fa)"/>
+        <text class="d-lbl" x="296" y="172" text-anchor="middle" style="fill:var(--lakebase)">fork one branch per attendee</text>
+        <text class="d-ts" x="296" y="310" text-anchor="middle">the exercises connect to each attendee's own branch (auto-resolved)</text>
+        <text class="d-ts" x="296" y="330" text-anchor="middle">+ more … up to the project's branch limit</text>
+
+        <!-- Project 2 (optional) -->
+        <rect x="612" y="34" width="272" height="330" rx="12" fill="none" stroke="var(--line-strong)" stroke-width="1.6" stroke-dasharray="6 5"/>
+        <text class="d-lbl" x="632" y="58">PROJECT-2 · optional</text>
+        <rect class="d-accent" x="700" y="80" width="120" height="42" rx="7" opacity=".7"/>
+        <text class="d-t" x="760" y="106" text-anchor="middle">production</text>
+        <rect class="d-box" x="648" y="176" width="104" height="58" rx="8" opacity=".8"/>
+        <text class="d-ts" x="700" y="205" text-anchor="middle">br · attendee</text>
+        <text class="d-ts" x="700" y="221" text-anchor="middle">endpoint</text>
+        <rect class="d-box" x="768" y="176" width="104" height="58" rx="8" opacity=".8"/>
+        <text class="d-ts" x="820" y="205" text-anchor="middle">br · attendee</text>
+        <text class="d-ts" x="820" y="221" text-anchor="middle">endpoint</text>
+        <text class="d-ts" x="748" y="300" text-anchor="middle">created only when</text>
+        <text class="d-ts" x="748" y="317" text-anchor="middle">attendees &gt; branch limit</text>
+        <text class="d-ts" x="748" y="334" text-anchor="middle">(script splits automatically)</text>
+      </svg>
+      <figcaption>One shared project, one branch per attendee (each with its own endpoint). Past the
+        project's branch limit, the script spins up <b>project-2, -3, …</b> and splits attendees across
+        them.</figcaption>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase project / branch</span>
+        <span><span class="swatch" style="background:var(--accent)"></span>branch runtime</span>
+      </div>
+    </figure>
+
+    <div class="note"><b>Isolation is by branch, enforced by convention.</b> Lakebase access control is at
+      the <b>project</b> level (attendees get <code>CAN_USE</code> on the project), so technically an
+      attendee could point at another's branch — but the exercises always resolve <em>their own</em>
+      branch, so in practice each person stays in their own sandbox. Good enough for a workshop.</div>
+  </section>
+
+  <!-- PREREQS -->
+  <section class="step" id="prereq">
+    <div class="sh"><span class="snum">1</span><h2>Prerequisites</h2></div>
+    <table>
+      <tr><th>Capability</th><th>For</th><th>Note</th></tr>
+      <tr><td>Unity Catalog + a writable catalog</td><td>feature-store table + sync/SCD1 Delta tables</td><td>Placeholder <code>main</code>; pass yours with <code>--uc-catalog</code>.</td></tr>
+      <tr><td>Serverless SQL warehouse + serverless notebooks</td><td>all exercises</td><td>No cluster needed.</td></tr>
+      <tr><td>Lakebase (autoscaling projects)</td><td>the whole workshop</td><td>You create the project(s) + branches below. Mind the per-project branch limit.</td></tr>
+      <tr><td>Lakebase synced tables (reverse ETL)</td><td>Ex4 Delta → <code>lb_*</code></td><td>Evolving/preview — confirm the API + Preview status in the workspace.</td></tr>
+      <tr><td>Create serverless Lakeflow/DLT pipelines</td><td>Ex5 SCD1 pipeline</td><td>Attendees need this entitlement.</td></tr>
+      <tr><td>Served pay-per-token Claude endpoint</td><td>feature-store chatbot + memory agent</td><td>e.g. <code>databricks-claude-sonnet-4-5</code>; swap in the notebooks if yours differs.</td></tr>
+      <tr><td>Create Model Serving endpoints</td><td>feature-store Feature Serving</td><td>Attendees need this entitlement.</td></tr>
+    </table>
+    <p>You need <b>workspace admin</b> — no account admin required. Authenticate the CLI first:</p>
+    <pre><code>databricks auth login https://&lt;your-workspace-host&gt; --profile lakebase</code></pre>
+  </section>
+
+  <!-- SETUP -->
+  <section class="step" id="setup">
+    <div class="sh"><span class="snum">2</span><h2>Run the setup script</h2></div>
+    <p>One command creates the shared project, grants your attendees, and forks a branch (with its own
+      endpoint) for each. Pass one <code>--grant-user</code> per attendee:</p>
+    <pre><code>python scripts/facilitator_setup.py -p lakebase \
+    --project-id cibc-cm-workshop \
+    --grant-user sofia.martins@cibc.com \
+    --grant-user david.chen@cibc.com \
+    --grant-user priya.nair@cibc.com \
+    --branch-max-cu 4 \
+    --uc-catalog main</code></pre>
+    <p>What it does — all idempotent, safe to re-run:</p>
+    <ol class="steps">
+      <li>Creates the project <code>cibc-cm-workshop</code> (if missing) and waits for its production endpoint.</li>
+      <li>Grants each attendee <code>CAN_USE</code> on the project and creates their Postgres OAuth login role (installs the <code>databricks_auth</code> extension).</li>
+      <li>Forks a branch per attendee off production (<code>br · &lt;username&gt;</code>, <code>no_expiry</code>) with a primary READ/WRITE endpoint set to an autoscaling range of <b>1 → 4 CU</b> (from <code>--branch-max-cu</code>) so the Exercise 1 load demo can show compute scaling.</li>
+      <li>Prints the attendee → project/branch map, the UC grants to apply, and the one env var each attendee sets.</li>
+    </ol>
+    <div class="note"><b>Why <code>--branch-max-cu 4</code>:</b> Exercise 1's autoscale/load demo only shows
+      a curve if the branch endpoint can scale (<code>max_cu &gt; min_cu</code>). Without it, branches sit at
+      1 → 1 CU and the graph is flat. The SDK reports endpoint <em>state</em> and the min/max envelope but
+      not a live CU number — confirm the range in the Lakebase UI (branch → endpoint → compute) if needed.</div>
+    <div class="note"><b>Tip:</b> add <code>--dry-run</code> first to see exactly what it will do without
+      changing anything. Add <code>--app-name &lt;lab-app&gt;</code> if you're also deploying a Lab app
+      (grants its service principal a role).</div>
+    <div class="note check"><b>✓ Check</b> — the script prints one <code>br · &lt;username&gt;</code> per
+      attendee with "branch created" + "endpoint"; the map lists every attendee against the project.</div>
+
+    <h3>Then finish the grants it can't set</h3>
+    <p>The script prints these — apply them once (Catalog Explorer / a SQL warehouse / admin console):</p>
+    <ol class="steps">
+      <li><b>Compute:</b> <code>CAN USE</code> on a serverless SQL warehouse; serverless notebooks/jobs enabled.</li>
+      <li><b>Unity Catalog:</b> <code>USE CATALOG</code> + <code>CREATE SCHEMA</code> on your catalog (or let <code>--uc-catalog</code> emit them).</li>
+      <li><b>Model Serving:</b> <code>CAN QUERY</code> on the Claude FM endpoint + the entitlement to create serving endpoints.</li>
+    </ol>
+
+    <h3>Point attendees at the project</h3>
+    <p>Attendees set <b>one</b> env var (or the <code>SHARED_PROJECT_ID</code> constant in
+      <code>labs/_setup.py</code>). Their branch is derived from their username automatically:</p>
+    <pre><code><span class="c"># each attendee, once, in their workspace:</span>
+LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
+  </section>
+
+  <!-- SCALE -->
+  <section class="step" id="scale">
+    <div class="sh"><span class="snum" style="background:var(--lakebase)">＋</span><h2>Optional: too many attendees for one project</h2></div>
+    <p>A Lakebase project caps how many branches it can hold. If your headcount would exceed it, cap the
+      branches per project and the script <b>automatically creates additional projects</b>
+      (<code>cibc-cm-workshop-1</code>, <code>-2</code>, …) and splits attendees across them:</p>
+    <pre><code>python scripts/facilitator_setup.py -p lakebase \
+    --project-id cibc-cm-workshop \
+    --grant-user a@cibc.com --grant-user b@cibc.com ... \
+    --max-branches-per-project 18 \
+    --uc-catalog main</code></pre>
+    <div class="note opt"><b>What changes for attendees:</b> the script's printed map groups attendees by
+      project. Attendees on <code>cibc-cm-workshop-2</code> set
+      <code>LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop-2</code> instead of <code>-1</code>. Everything
+      else — including their own branch — is identical. Hand each group its project id from the map.</div>
+    <p>Set <code>--max-branches-per-project</code> a little below your workspace's actual limit to leave
+      headroom. Re-running is safe: existing projects/branches are detected and skipped.</p>
+  </section>
+
+  <!-- RUN OF SHOW -->
+  <section class="step" id="run">
+    <div class="sh"><span class="snum">3</span><h2>Run of show &amp; the long waits</h2></div>
+    <p>Suggested full-day flow (~6–6.5h, or split at the break into two half-days) — the recommended
+      order is 1 → 7:</p>
+    <ol class="steps">
+      <li><b>1 · Getting to know Lakebase</b> (45m) — orientation + the SQL Editor, then the autoscale/load demo.</li>
+      <li><b>2 · Authentication + data</b> (45m) — connect from Python; generate the CM dataset; VS Code.</li>
+      <li><b>3 · Data APIs — REST vs JDBC</b> (30m) — two ways an app reaches the branch.</li>
+      <li>— break (10m) —</li>
+      <li><b>4 · Delta → Lakebase sync</b> (30m) — reverse-ETL a Delta table into an <code>lb_*</code> synced table.</li>
+      <li><b>5 · Lakebase → Delta, SCD Type 1</b> (40m) — capture <code>lb_*</code> changes; Lakeflow AUTO CDC.</li>
+      <li>— lunch / long break (30–45m) —</li>
+      <li><b>6 · Online feature store + chatbot</b> (75m) — the money shot; two long waits (below).</li>
+      <li><b>7 · Agentic memory</b> (45m) — persistent memory with LangGraph + Lakebase.</li>
+      <li><b>Wrap</b> (15m).</li>
+    </ol>
+    <p>Tight on time? The core arc is 1 → 2 → 6 → 7; exercises 3–5 are self-contained and can be
+      dropped or run as a shorter integration half-day. The full talk track, the hero thread (Air
+      Canada's energy exposure), and honest talking points are in <code>FACILITATOR.md</code>.</p>
+    <div class="note warn"><b>Two steps in the feature-store exercise (6) run long — this is expected, not a hang.</b>
+      <code>publish_table</code> stands up a serverless sync pipeline into Lakebase (~15–20 min the first
+      time) and the Feature Serving endpoint takes ~10–15 min to provision. Both are fixed overhead
+      regardless of data size — use the time to walk the architecture diagrams in the attendee guide.
+      (The Delta→Lakebase sync (4) and the SCD1 pipeline (5) also provision, but only a few minutes each.)</div>
+    <h3>Optional pre-warm</h3>
+    <p>To remove the publish wait for attendees, run the feature-store <code>Feature_Store</code> notebook
+      once yourself before the room. Attendees then hit a fast incremental re-publish against the
+      existing pipeline instead of the cold provision. (Serverless is not the lever — the sync is
+      already serverless; pre-warming is what skips the cost.)</p>
+  </section>
+
+  <!-- CLEANUP -->
+  <section class="step" id="cleanup">
+    <div class="sh"><span class="snum">4</span><h2>Cleanup after the workshop</h2></div>
+    <p>Branches are created with <code>no_expiry</code>, so they persist until you remove them. After the
+      session:</p>
+    <ol class="steps">
+      <li><b>Attendee branches:</b> delete each <code>br · &lt;username&gt;</code> (Lakebase UI → project →
+        Branches, or <code>w.postgres.delete_branch(...)</code>). This frees the branch count and its endpoint,
+        and clears everything on it — the <code>cm_&lt;user&gt;</code>, <code>lb_*</code>, and <code>checkpoint%</code> tables.</li>
+      <li><b>Sync + SCD1 artifacts (Ex4/Ex5):</b> delete each synced table (removes its sync pipeline) and the
+        Lakeflow/DLT pipeline; optionally drop the <code>cm_bronze_&lt;user&gt;</code> / <code>cm_scd_&lt;user&gt;</code> UC schemas.</li>
+      <li><b>Feature-store artifacts:</b> delete each Feature Serving endpoint (<code>w.serving_endpoints.delete</code>)
+        and online table (<code>w.feature_store.delete_online_table</code> — never <code>DROP TABLE</code>, which orphans data).</li>
+      <li><b>Projects:</b> stop or delete the shared project(s) — Lakebase does <em>not</em> auto-stop, so
+        stop it if idle cost matters.</li>
+    </ol>
+    <div class="note"><b>Reset an attendee mid-workshop:</b> delete their branch and re-run the setup
+      script — it recreates just the missing branch.</div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">CIBC Capital Markets — Lakebase Workshop · facilitator setup. Attendee guide:
+    <code>docs/attendee.html</code> · full notes: <code>FACILITATOR.md</code>.</div>
+</footer>
