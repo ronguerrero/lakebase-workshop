@@ -38,11 +38,14 @@ from importlib.metadata import version
 
 from databricks.feature_engineering import FeatureEngineeringClient
 
-# databricks-sdk arrives as a feature-engineering dependency; pinning it alongside
-# sends pip into a backtracking loop, so just verify the resolved version here.
+# databricks-sdk arrives as a feature-engineering dependency; co-pinning it in the same
+# %pip install can send pip into a backtracking loop, so we verify the resolved version
+# here instead. Require >=0.118.0 (consistent with the other SDK-using notebooks).
 _sdk_version = version("databricks-sdk")
-if tuple(int(p) for p in _sdk_version.split(".")[:2]) < (0, 81):
-    raise RuntimeError(f"databricks-sdk {_sdk_version} is too old for the Lakebase APIs.")
+if tuple(int(p) for p in _sdk_version.split(".")[:2]) < (0, 118):
+    raise RuntimeError(
+        f"databricks-sdk {_sdk_version} is too old for the Lakebase APIs — need >=0.118.0. "
+        "Run: %pip install 'databricks-sdk>=0.118.0' and restartPython.")
 print(f"✓ databricks-sdk {_sdk_version}")
 
 fe = FeatureEngineeringClient()

@@ -33,7 +33,9 @@ group. The reference solution notebook in each folder is the validated version t
 
 ### Versions / packages (pinned in the notebooks)
 - `psycopg[binary]>=3.1.0` (most notebooks); `psycopg[binary,pool]>=3.1.0` (agentic memory)
-- `databricks-sdk>=0.81.0` (connection APIs); `>=0.118.0` for agentic memory
+- `databricks-sdk>=0.118.0` in every SDK-using notebook (the feature-store notebook verifies the
+  resolved version at runtime rather than co-pinning, to avoid a pip backtracking loop with
+  `databricks-feature-engineering`)
 - `databricks-feature-engineering>=0.13.0`, `protobuf>=5.29.5,<6` (feature store)
 - `langgraph`, `langgraph-checkpoint-postgres`, `langchain-databricks`, `langchain>=0.3,<0.4`, `mlflow` (feature-store chatbot / memory agent)
 
