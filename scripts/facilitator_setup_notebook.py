@@ -12,7 +12,8 @@
 # MAGIC 4. (with a `uc_catalog`) creates the shared **Unity Catalog** catalog + a `cm_<user>` schema
 # MAGIC    per attendee, **owned by that attendee**, and grants everyone `USE CATALOG`.
 # MAGIC 5. (with an `fm_endpoint`) grants attendees **`CAN QUERY`** on the Claude Foundation Model
-# MAGIC    endpoint the feature-store chatbot + memory agent call. (Optionally `CAN USE` on a SQL
+# MAGIC    endpoint the feature-store chatbot + memory agent call — **select it from the widget's
+# MAGIC    list of endpoints served in this workspace**. (Optionally `CAN USE` on a SQL
 # MAGIC    warehouse — the workshop doesn't need one; the exercises run on serverless notebook
 # MAGIC    compute + Lakebase's built-in editor.)
 # MAGIC
@@ -37,10 +38,29 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
+from databricks.sdk import WorkspaceClient
+
 dbutils.widgets.text("project_id", "cibc-cm-workshop", "1 · Lakebase project id (base)")
 dbutils.widgets.text("grant_users", "", "2 · Attendee emails (comma/space separated)")
 dbutils.widgets.text("uc_catalog", "main", "3 · Unity Catalog catalog (blank = skip UC)")
-dbutils.widgets.text("fm_endpoint", "databricks-claude-sonnet-4-5", "4 · Claude FM endpoint (blank = skip grant)")
+
+# 4 · Claude FM endpoint — a combobox populated with the serving endpoints actually
+# available in THIS workspace (Claude ones first), so you SELECT rather than guess the name.
+# You can still type a different one (e.g. a provisioned-throughput or external endpoint),
+# or clear it to skip the CAN QUERY grant. Falls back to a free-text field if listing the
+# serving endpoints isn't permitted for whoever runs this.
+_FM_FALLBACK = "databricks-claude-sonnet-4-5"
+try:
+    _eps = [e.name for e in WorkspaceClient().serving_endpoints.list()]
+    _choices = [n for n in _eps if "claude" in n.lower()] or _eps or [_FM_FALLBACK]
+    _fm_default = next((n for n in _choices if "sonnet-4-5" in n),
+                       next((n for n in _choices if "claude" in n.lower()), _choices[0]))
+    dbutils.widgets.combobox("fm_endpoint", _fm_default, _choices[:1024],
+                             "4 · Claude FM endpoint (select or type; clear = skip grant)")
+except Exception as _e:
+    print(f"(couldn't list serving endpoints — {str(_e)[:80]}; using a free-text field)")
+    dbutils.widgets.text("fm_endpoint", _FM_FALLBACK, "4 · Claude FM endpoint (type; blank = skip grant)")
+
 dbutils.widgets.text("warehouse_id", "", "5 · SQL warehouse id (optional — not required)")
 dbutils.widgets.text("branch_max_cu", "4", "6 · Max CU per attendee branch")
 dbutils.widgets.text("max_branches_per_project", "18", "7 · Max branches per project (split past this)")

@@ -36,9 +36,9 @@ ENDPOINT_NAME = f"cm-client-risk-{_sanitize(user_email)}"[:63]
 
 # Pay-per-token Foundation Model endpoint. The name follows the standard
 # `databricks-<model>` convention, but which Claude model is served varies by
-# region/cloud — set this widget to whatever your workspace serves (check the
-# Serving UI or `system.ai.serving_endpoints`), e.g. databricks-claude-sonnet-4-5,
-# databricks-claude-haiku-4-5.
+# region/cloud — set this widget to whatever your workspace serves. List what's
+# available with `w.serving_endpoints.list()` (or the Serving UI), e.g.
+# databricks-claude-sonnet-4-5, databricks-claude-haiku-4-5.
 dbutils.widgets.text("llm_endpoint", "databricks-claude-sonnet-4-5", "LLM serving endpoint")
 LLM_ENDPOINT = dbutils.widgets.get("llm_endpoint")
 
