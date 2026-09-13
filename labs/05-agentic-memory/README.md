@@ -1,6 +1,6 @@
-# Exercise 4 — Agentic Memory on Lakebase
+# Exercise 5 — Agentic Memory on Lakebase
 
-**Persona:** the CIBC **Coverage Desk Assistant** from Exercise 3 — now with a memory.
+**Persona:** the CIBC **Coverage Desk Assistant** from Exercise 4 — now with a memory.
 **Build surface:** Genie Code (Agent Mode). **Prerequisite:** your Lakebase project (Ex1–2).
 **Time:** ~25 min.
 
@@ -101,9 +101,12 @@ the **database name** is `databricks_postgres` (underscores).
 process, or an app, tomorrow); change it for a fresh memory.
 
 ## What's next
-That's the capstone. You've now used one Lakebase project for OLTP data (Ex2), low-latency
-feature serving (Ex3), and durable agent memory (Ex4). To take it further: promote this agent
-to a **Databricks App** (its service principal gets a Lakebase role + least-privilege grant),
-add a **long-term** memory table (a `pgvector` store recalled per user) alongside the
-short-term checkpoints, and wire in the Ex3 feature-lookup tool so the assistant both
+This completes the **Coverage Desk Assistant** arc. You've now used one Lakebase project for OLTP
+data (Ex2), low-latency feature serving (Ex4), and durable agent memory (Ex5). To take it further:
+promote this agent to a **Databricks App** (its service principal gets a Lakebase role +
+least-privilege grant), add a **long-term** memory table (a `pgvector` store recalled per user)
+alongside the short-term checkpoints, and wire in the Ex4 feature-lookup tool so the assistant both
 *remembers* and *looks up* in one conversation.
+
+The final two exercises round-trip data between Lakebase and the lakehouse: **Exercise 6 — Delta →
+Lakebase sync** and **Exercise 7 — Lakebase → Delta (SCD Type 1)**.

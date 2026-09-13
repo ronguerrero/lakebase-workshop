@@ -1,4 +1,4 @@
-# Exercise — Data APIs: how applications reach Lakebase (REST vs JDBC)
+# Exercise 3 — Data APIs: how applications reach Lakebase (REST vs JDBC)
 
 **Persona:** a CIBC Capital Markets trading app / dashboard needs the desk's data out of your
 Lakebase branch — over **HTTP** from a serverless front end, or over a pooled **JDBC** connection
@@ -90,5 +90,7 @@ and obey the same grants.
 - PostgreSQL JDBC driver: `org.postgresql:postgresql` (Maven).
 
 ## What's next
-- **Lakebase Sync** — mirror a Delta table into Lakebase for low-latency serving.
-- **CDF → Delta** — stream Lakebase changes out and shape them into SCD1 tables.
+**Exercise 4 — Online Feature Store & the Coverage Desk Assistant:** aggregate your tables into
+per-client risk features, publish them to Lakebase, and build a chatbot that looks them up.
+(Later, Exercises 6–7 round-trip data between Lakebase and the lakehouse: Delta → Lakebase sync,
+then Lakebase → Delta as SCD1.)

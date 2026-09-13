@@ -132,4 +132,4 @@ ORDER BY p.instrument_id;
 
 ---
 
-**Back to:** [Exercise 2 README](./README.md) &nbsp;·&nbsp; **Next:** Exercise 3 — Online Feature Store
+**Back to:** [Exercise 2 README](./README.md) &nbsp;·&nbsp; **Next:** Exercise 3 — Data APIs (REST vs JDBC)

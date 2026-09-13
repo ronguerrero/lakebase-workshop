@@ -1,4 +1,4 @@
-# Exercise — Delta → Lakebase Sync (reverse ETL)
+# Exercise 6 — Delta → Lakebase Sync (reverse ETL)
 
 **Build surface:** notebook-first (Genie Code optional) · **Prerequisite:** your Lakebase branch (Ex1–2)
 
@@ -56,5 +56,5 @@ Fresh Genie Code chat on a serverless notebook, paste:
   [Online tables & sync](https://docs.databricks.com/aws/en/machine-learning/feature-store/online-feature-store).
 
 ## What's next
-The reverse direction — **Lakebase → Delta (CDF capture)** — captures writes to your `lb_*`
-operational tables back into the lakehouse and transforms them into **SCD1** analytical tables.
+**Exercise 7 — Lakebase → Delta (SCD Type 1)** is the reverse direction: it captures writes to your
+`lb_*` operational tables back into the lakehouse and transforms them into **SCD1** analytical tables.

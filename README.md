@@ -17,20 +17,20 @@ produce (already validated), so a facilitator can compare and unblock anyone.
 
 | # | Exercise | Folder | What you build |
 |---|----------|--------|----------------|
-| 1 | **Getting to Know Lakebase** (+ autoscaling/load) | `labs/ex1-getting-to-know-lakebase/` | Orientation + the in-UI SQL Editor; drive load and watch your branch autoscale (`Autoscale_Load.py`) |
-| 2 | **Authentication** | `labs/ex2-authentication/` | Connect from Python (OAuth) + generate the CM dataset; connect VS Code as an external tool |
-| 3 | **Data APIs — REST vs JDBC** | `labs/data-api/` | Reach your branch over a REST data API and over JDBC; when to use each |
-| 4 | **Delta → Lakebase sync** | `labs/delta-to-lakebase-sync/` | Reverse-ETL a curated Delta table into your branch as an `lb_*` synced table |
-| 5 | **Lakebase → Delta (SCD Type 1)** | `labs/lakebase-cdf-to-scd1/` | Capture `lb_*` changes into bronze Delta, then a Lakeflow AUTO CDC pipeline applies SCD1 |
-| 6 | **Online Feature Store + Chatbot** | `labs/ex3-online-feature-store/` | Client-risk features published to Lakebase, served via a Feature Serving endpoint; a LangChain "Coverage Desk Assistant" that looks them up via the MLflow deploy client |
-| 7 | **Agentic Memory** | `labs/ex4-agentic-memory/` | A LangGraph agent with persistent conversation memory in Lakebase Postgres |
+| 1 | **Getting to Know Lakebase** (+ autoscaling/load) | `labs/01-getting-to-know-lakebase/` | Orientation + the in-UI SQL Editor; drive load and watch your branch autoscale (`Autoscale_Load.py`) |
+| 2 | **Authentication** | `labs/02-authentication/` | Connect from Python (OAuth) + generate the CM dataset; connect VS Code as an external tool |
+| 3 | **Data APIs — REST vs JDBC** | `labs/03-data-api/` | Reach your branch over a REST data API and over JDBC; when to use each |
+| 4 | **Online Feature Store + Chatbot** | `labs/04-online-feature-store/` | Client-risk features published to Lakebase, served via a Feature Serving endpoint; a LangChain "Coverage Desk Assistant" that looks them up via the MLflow deploy client |
+| 5 | **Agentic Memory** | `labs/05-agentic-memory/` | A LangGraph agent with persistent conversation memory in Lakebase Postgres |
+| 6 | **Delta → Lakebase sync** | `labs/06-delta-to-lakebase-sync/` | Reverse-ETL a curated Delta table into your branch as an `lb_*` synced table |
+| 7 | **Lakebase → Delta (SCD Type 1)** | `labs/07-lakebase-cdf-to-scd1/` | Capture `lb_*` changes into bronze Delta, then a Lakeflow AUTO CDC pipeline applies SCD1 |
 
-Order refers to the recommended flow (as presented in `docs/attendee.html` / `PROMPT_RUNBOOK.md`); folder
-names keep their original `ex1–ex4` labels plus descriptive folders for the newer exercises.
+Exercise numbers match the folder names (`labs/0N-…`) and the recommended flow in `docs/attendee.html`
+/ `PROMPT_RUNBOOK.md`.
 
 Every attendee shares **one Lakebase project** but works on their **own branch** (isolated, own
 endpoint) — the exercises connect to it automatically. The **Coverage Desk Assistant** persona ties
-exercises 6 and 7 together: it *looks up live client risk features*, then *remembers the conversation*.
+exercises 4 and 5 together: it *looks up live client risk features*, then *remembers the conversation*.
 
 See **`DATA_MODEL.md`** for the shared capital-markets data model, and **`FACILITATOR.md`** for
 prerequisites, the permissions to grant participants, the agenda, and honest talking points.
@@ -69,7 +69,7 @@ See **`docs/facilitator.html`** for the visual setup walkthrough (topology diagr
 
 1. Clone/import this repo into your Databricks workspace (Repos → Add Repo, or
    `databricks workspace import-dir`).
-2. Open `labs/ex1-getting-to-know-lakebase/README.md` and work through the exercises in order.
+2. Open `labs/01-getting-to-know-lakebase/README.md` and work through the exercises in order.
 3. Each Genie-driven exercise tells you exactly what to paste into **Genie Code**; the reference
    notebook in the same folder is there if you get stuck.
 
@@ -88,13 +88,13 @@ Feature Serving) and **serverless DLT pipelines** (SCD1 exercise). Full checklis
 ```
 scripts/facilitator_setup.py     create shared Lakebase project + a branch per participant (facilitator)
 labs/_setup.py                   shared connection helper (%run by each exercise)
-labs/ex1-getting-to-know-lakebase/   README + Autoscale_Load.py (drive load, watch the branch scale)
-labs/ex2-authentication/         Connect_And_Generate_Data.py + VSCODE_CONNECT.md
-labs/data-api/                   Data_API.py — REST vs JDBC access to your branch
-labs/delta-to-lakebase-sync/     Delta_To_Lakebase.py — reverse-ETL Delta → lb_* synced table
-labs/lakebase-cdf-to-scd1/       Lakebase_CDF_To_SCD1.py + scd1_pipeline.py — lb_* → bronze Delta → SCD1
-labs/ex3-online-feature-store/   Feature_Store.py + Coverage_Desk_Chatbot.py
-labs/ex4-agentic-memory/         Agent_Memory.py
+labs/01-getting-to-know-lakebase/   README + Autoscale_Load.py (drive load, watch the branch scale)
+labs/02-authentication/             Connect_And_Generate_Data.py + VSCODE_CONNECT.md
+labs/03-data-api/                   Data_API.py — REST vs JDBC access to your branch
+labs/04-online-feature-store/       Feature_Store.py + Coverage_Desk_Chatbot.py
+labs/05-agentic-memory/             Agent_Memory.py
+labs/06-delta-to-lakebase-sync/     Delta_To_Lakebase.py — reverse-ETL Delta → lb_* synced table
+labs/07-lakebase-cdf-to-scd1/       Lakebase_CDF_To_SCD1.py + scd1_pipeline.py — lb_* → bronze Delta → SCD1
 docs/attendee.html · docs/facilitator.html   self-contained lab guides (open in a browser)
 DATA_MODEL.md · FACILITATOR.md · PROMPT_RUNBOOK.md
 ```

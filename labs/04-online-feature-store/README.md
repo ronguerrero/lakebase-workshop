@@ -1,4 +1,4 @@
-# Exercise 3 — Online Feature Store + the Coverage Desk Assistant
+# Exercise 4 — Online Feature Store + the Coverage Desk Assistant
 
 **Genie Code driven.** You will paste the prompts below into **Genie Code (Agent Mode)**.
 The prompts are fully-qualified so everyone in the room generates near-identical code — we
@@ -111,5 +111,5 @@ Serving → Lakebase); Air Canada's answer reflects HIGH risk / large energy exp
 - Do **not** delete the Lakebase project — later labs share it.
 
 ## What's next
-**Exercise 4 — Agentic Memory:** the assistant currently forgets each turn. Back it with a
+**Exercise 5 — Agentic Memory:** the assistant currently forgets each turn. Back it with a
 LangGraph `PostgresSaver` on Lakebase so the conversation persists.

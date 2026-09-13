@@ -116,6 +116,5 @@ step-by-step (drivers, connection fields, the native-password path, and the read
 ---
 
 ## What's next
-**Exercise 3 — Online Feature Store & the Coverage Desk Assistant:** aggregate these tables into
-per-client **risk features**, publish them to Lakebase for low-latency serving, and build a chatbot
-that looks them up via a Feature Serving endpoint.
+**Exercise 3 — Data APIs (REST vs JDBC):** reach this same branch over an HTTP data API and over a
+pooled JDBC connection, and learn when an app should use each.

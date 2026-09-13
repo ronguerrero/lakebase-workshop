@@ -147,7 +147,7 @@
   <div class="wrap">
     <span class="brand">CIBC Capital Markets · <b>Lakebase Lab</b></span>
     <nav class="exlinks">
-      <a href="#ex1">01</a><a href="#ex2">02</a><a href="#dataapi">03</a><a href="#deltalb">04</a><a href="#lbscd1">05</a><a href="#ex3">06</a><a href="#ex4">07</a>
+      <a href="#ex1">01</a><a href="#ex2">02</a><a href="#dataapi">03</a><a href="#ex3">04</a><a href="#ex4">05</a><a href="#deltalb">06</a><a href="#lbscd1">07</a>
     </nav>
     <div class="toggle" role="group" aria-label="Choose how you build each step">
       <button id="btn-nb" aria-pressed="true">Run the notebook</button>
@@ -205,7 +205,7 @@ CREATE SCHEMA IF NOT EXISTS cm_&lt;you&gt;;</code></pre>
 
     <h3>Step 6 — watch your branch autoscale under load</h3>
     <p>Market open: a burst of pricing/limit queries hits your book. Run
-      <a href="/editor/notebooks/941004384447594" target="_blank" rel="noopener"><code>Autoscale_Load.py</code></a> — it fires a concurrent workload at <b>your branch</b> and its
+      <a href="../labs/01-getting-to-know-lakebase/Autoscale_Load.py" target="_blank" rel="noopener"><code>Autoscale_Load.py</code></a> — it fires a concurrent workload at <b>your branch</b> and its
       compute scales up from the minimum toward its max, then settles back to zero when the load stops.
       You pay only for what you use.</p>
     <figure>
@@ -254,7 +254,7 @@ CREATE SCHEMA IF NOT EXISTS cm_&lt;you&gt;;</code></pre>
 
     <div class="path-notebook">
       <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Open <a href="/editor/notebooks/4047276471057577" target="_blank" rel="noopener"><code>labs/ex2-authentication/Connect_And_Generate_Data.py</code></a> on serverless and
+      <p>Open <a href="../labs/02-authentication/Connect_And_Generate_Data.py" target="_blank" rel="noopener"><code>labs/02-authentication/Connect_And_Generate_Data.py</code></a> on serverless and
         <b>Run all</b>. The connection comes from the shared helper — connect with <b>keyword args, not
         a URL</b> (OAuth tokens break URL parsing):</p>
       <pre><code><span class="k">%pip install</span> "psycopg[binary]&gt;=3.1.0" --quiet
@@ -266,7 +266,7 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
     <div class="path-genie">
       <div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
       <p>Open a fresh Genie Code chat on a serverless notebook and paste this (the full verbatim prompt
-        is in the exercise <a href="/editor/files/4047276471057578" target="_blank" rel="noopener"><code>README.md</code></a>):</p>
+        is in the exercise <a href="../labs/02-authentication/README.md" target="_blank" rel="noopener"><code>README.md</code></a>):</p>
       <div class="prompt"><span class="lbl">Genie Code prompt</span>
         Generate a Databricks notebook that <code>%run ../_setup</code>, opens <code>get_connection()</code>,
         and loads a synthetic CIBC Capital Markets dataset into my Postgres schema: five tables
@@ -280,7 +280,7 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
     <div class="note check"><b>✓ Check</b> — 9 clients, 18 instruments, 540 prices, ~76 positions, 600
       trades; Air Canada's gross notional is dominated by WTI + heating oil (~$32M of ~$33M).</div>
     <p style="font-size:.95rem;color:var(--muted)">Part B (optional): connect an external tool — see
-      <a href="/editor/files/4047276471057579" target="_blank" rel="noopener"><code>labs/ex2-authentication/VSCODE_CONNECT.md</code></a> for the native-password path.</p>
+      <a href="../labs/02-authentication/VSCODE_CONNECT.md" target="_blank" rel="noopener"><code>labs/02-authentication/VSCODE_CONNECT.md</code></a> for the native-password path.</p>
   </section>
 
   <!-- ============ DATA API ============ -->
@@ -321,7 +321,7 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
       <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>access path</span></div>
     </figure>
     <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <a href="/editor/notebooks/941004384447589" target="_blank" rel="noopener"><code>labs/data-api/Data_API.py</code></a> — it hits your branch over the REST Data API and over
+      <p>Run <a href="../labs/03-data-api/Data_API.py" target="_blank" rel="noopener"><code>labs/03-data-api/Data_API.py</code></a> — it hits your branch over the REST Data API and over
         JDBC (Spark JDBC read), then compares. <em>The REST base URL is auto-discovered from
         <code>get_data_api().status.url</code>; if the Data API isn't enabled on the project the notebook
         skips REST gracefully and the JDBC path still runs.</em></p></div>
@@ -340,100 +340,9 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
       and can state when you'd pick each (and which token each uses).</div>
   </section>
 
-  <!-- ============ DELTA -> LAKEBASE ============ -->
-  <section class="ex" id="deltalb">
-    <div class="exhead"><span class="exnum">4</span><h2>Delta → Lakebase sync (reverse ETL)</h2></div>
-    <span class="tag">synced tables</span>
-    <p>Take a lakehouse-curated <b>Delta</b> table (say a nightly client reference / risk-limits table)
-      and continuously sync it into your branch as an operational <code>lb_*</code> table, so the
-      trading app reads fresh, governed data over Postgres.</p>
-    <figure>
-      <svg viewBox="0 0 880 200" role="img" aria-label="A Delta table in Unity Catalog with a primary key and change data feed is synced by a serverless pipeline into an lb-prefixed table on the attendee's Lakebase branch.">
-        <defs><marker id="dl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
-          <marker id="dll" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
-        <rect class="d-accent" x="16" y="66" width="220" height="66" rx="9"/>
-        <text class="d-tb" x="126" y="90" text-anchor="middle">client_reference</text>
-        <text class="d-ts" x="126" y="108" text-anchor="middle">Delta · UC · PK + CDF</text>
-        <rect class="d-box" x="332" y="66" width="200" height="66" rx="9"/>
-        <text class="d-tb" x="432" y="90" text-anchor="middle">synced-table pipeline</text>
-        <text class="d-ts" x="432" y="108" text-anchor="middle">serverless · SNAPSHOT/TRIGGERED/CONT.</text>
-        <rect class="d-lake" x="628" y="60" width="236" height="80" rx="10"/>
-        <text class="d-lbl" x="746" y="84" text-anchor="middle" style="fill:var(--lakebase)">◆ YOUR LAKEBASE BRANCH</text>
-        <text class="d-tb" x="746" y="112" text-anchor="middle">lb_client_reference</text>
-        <line class="d-line" x1="236" y1="99" x2="330" y2="99" marker-end="url(#dl)"/>
-        <text class="d-lbl" x="283" y="91" text-anchor="middle">sync</text>
-        <line class="d-line-lake" x1="532" y1="99" x2="626" y2="99" marker-end="url(#dll)"/>
-        <text class="d-lbl" x="579" y="91" text-anchor="middle" style="fill:var(--lakebase)">CDF</text>
-      </svg>
-      <figcaption>A synced table replicates the Delta source into your branch as <code>lb_*</code> via a
-        serverless pipeline (CDF-driven, incremental). Update the Delta row → re-sync → it lands in Lakebase.</figcaption>
-      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>Delta source</span></div>
-    </figure>
-    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <a href="/editor/notebooks/941004384447592" target="_blank" rel="noopener"><code>labs/delta-to-lakebase-sync/Delta_To_Lakebase.py</code></a> — builds the Delta source
-        (PK + CDF), creates a Lakebase <b>synced table</b> into your branch, verifies the row count,
-        then updates a row and re-syncs. (~minutes to provision the sync pipeline the first time.)</p></div>
-    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
-      <div class="prompt"><span class="lbl">Genie Code prompt</span>Create a curated Delta table with a
-        PK + Change Data Feed, then create a Lakebase <b>synced table</b> (<code>lb_client_reference</code>)
-        into my branch, verify over psycopg that the rows match, update a row in Delta and re-sync to
-        show it propagate. Explain SNAPSHOT / TRIGGERED / CONTINUOUS. (Full prompt in the README.)</div></div>
-    <div class="note check"><b>✓ Check</b> — <code>lb_client_reference</code> exists on your branch with
-      the same rows as the Delta source; a Delta update propagates on re-sync.</div>
-  </section>
-
-  <!-- ============ LAKEBASE -> DELTA SCD1 ============ -->
-  <section class="ex" id="lbscd1">
-    <div class="exhead"><span class="exnum">5</span><h2>Lakebase → Delta (SCD Type 1 pipeline)</h2></div>
-    <span class="tag">CDC · Lakeflow · SCD1</span>
-    <p>The round trip: the trading app mutates <code>lb_*</code> tables all day; the lakehouse needs the
-      <b>current</b> picture for risk analytics. Capture the changes and land them in Delta with a
-      <b>Lakeflow (DLT) AUTO CDC</b> flow applying <b>SCD Type 1</b> (latest value wins, no history).</p>
-    <figure>
-      <svg viewBox="0 0 880 210" role="img" aria-label="Changes to the lb-prefixed Lakebase tables are extracted by watermark into an append-only bronze Delta table, then a Lakeflow DLT AUTO CDC flow applies SCD type 1 to produce current-state Delta tables.">
-        <defs><marker id="sc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
-          <marker id="scl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
-        <rect class="d-lake" x="16" y="66" width="200" height="72" rx="10"/>
-        <text class="d-lbl" x="116" y="90" text-anchor="middle" style="fill:var(--lakebase)">◆ LAKEBASE BRANCH</text>
-        <text class="d-tb" x="116" y="112" text-anchor="middle">lb_positions · lb_limits</text>
-        <text class="d-ts" x="116" y="128" text-anchor="middle">app mutations (updated_at)</text>
-        <rect class="d-box" x="304" y="66" width="184" height="72" rx="9"/>
-        <text class="d-tb" x="396" y="94" text-anchor="middle">bronze Delta</text>
-        <text class="d-ts" x="396" y="112" text-anchor="middle">append-only changes</text>
-        <text class="d-ts" x="396" y="127" text-anchor="middle">watermark extract</text>
-        <rect class="d-accent" x="576" y="60" width="288" height="84" rx="9"/>
-        <text class="d-tb" x="720" y="88" text-anchor="middle">Lakeflow (DLT) AUTO CDC</text>
-        <text class="d-ts" x="720" y="107" text-anchor="middle">stored_as_scd_type = 1</text>
-        <text class="d-ts" x="720" y="124" text-anchor="middle">→ positions_current · limits_current</text>
-        <line class="d-line-lake" x1="216" y1="102" x2="302" y2="102" marker-end="url(#scl)"/>
-        <text class="d-lbl" x="259" y="94" text-anchor="middle" style="fill:var(--lakebase)">extract</text>
-        <line class="d-line" x1="488" y1="102" x2="574" y2="102" marker-end="url(#sc)"/>
-        <text class="d-lbl" x="531" y="94" text-anchor="middle">AUTO CDC</text>
-      </svg>
-      <figcaption>Changed <code>lb_*</code> rows are extracted (by watermark) into append-only bronze
-        Delta, then a DLT AUTO CDC flow applies <b>SCD Type 1</b> — one current row per key — for analytics.</figcaption>
-      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase source</span><span><span class="swatch" style="background:var(--accent)"></span>Lakeflow pipeline</span></div>
-    </figure>
-    <div class="note wait"><b>Honest note:</b> Lakebase has no Delta-style change feed today, so this uses
-      the GA pattern — a watermark/incremental extract of the <code>lb_*</code> tables into bronze,
-      then DLT AUTO CDC for SCD1. (If your workspace gets native Lakebase→Delta CDC, swap the extract step.)</div>
-    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook + pipeline</div>
-      <p>Run <a href="/editor/notebooks/941004384447596" target="_blank" rel="noopener"><code>labs/lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py</code></a> (seeds + mutates
-        <code>lb_*</code>, extracts to bronze, creates the Lakeflow pipeline from
-        <a href="/editor/notebooks/941004384447598" target="_blank" rel="noopener"><code>scd1_pipeline.py</code></a>) and confirm each key shows only its latest value.</p></div>
-    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
-      <div class="prompt"><span class="lbl">Genie Code prompt</span>Extract changed rows from my Lakebase
-        <code>lb_*</code> tables (by <code>updated_at</code> watermark) into an append-only bronze Delta
-        table, then build a Lakeflow DLT AUTO CDC flow with <code>stored_as_scd_type=1</code> keyed by
-        PK to produce current-state Delta tables; prove that an update leaves one latest row per key.
-        (Full prompt in the README.)</div></div>
-    <div class="note check"><b>✓ Check</b> — after mutating a position/limit, the SCD1 target has exactly
-      one row per key showing the latest value.</div>
-  </section>
-
   <!-- ============ EX3 ============ -->
   <section class="ex" id="ex3">
-    <div class="exhead"><span class="exnum">6</span><h2>Online feature store &amp; the Coverage Desk Assistant</h2></div>
+    <div class="exhead"><span class="exnum">4</span><h2>Online feature store &amp; the Coverage Desk Assistant</h2></div>
     <span class="tag">feature serving · MLflow · LangChain</span>
     <p>Turn the desk's data into <b>per-client risk features</b>, publish them to Lakebase for
       low-latency serving, expose them through a <b>Feature Serving endpoint</b>, and build a chatbot
@@ -520,8 +429,8 @@ conn = get_connection()   <span class="c"># OAuth cred · sslmode=require · sea
 
     <div class="path-notebook">
       <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <a href="/editor/notebooks/4047276471057582" target="_blank" rel="noopener"><code>Feature_Store.py</code></a> first (it creates the endpoint), then
-        <a href="/editor/notebooks/4047276471057581" target="_blank" rel="noopener"><code>Coverage_Desk_Chatbot.py</code></a>. The heart of it:</p>
+      <p>Run <a href="../labs/04-online-feature-store/Feature_Store.py" target="_blank" rel="noopener"><code>Feature_Store.py</code></a> first (it creates the endpoint), then
+        <a href="../labs/04-online-feature-store/Coverage_Desk_Chatbot.py" target="_blank" rel="noopener"><code>Coverage_Desk_Chatbot.py</code></a>. The heart of it:</p>
       <pre><code>fe.create_table(name=FEATURE_TABLE, primary_keys=["client_id"], df=features)
 <span class="c"># enable CDF, then publish into your Lakebase project</span>
 fe.publish_table(online_store=fe.get_online_store(name=PROJECT_ID),
@@ -541,7 +450,7 @@ def lookup_client_risk(client: str) -&gt; str:
     </div>
     <div class="path-genie">
       <div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
-      <p>Two prompts (fresh chat each; full versions in the exercise <a href="/editor/files/4047276471057583" target="_blank" rel="noopener"><code>README.md</code></a>):</p>
+      <p>Two prompts (fresh chat each; full versions in the exercise <a href="../labs/04-online-feature-store/README.md" target="_blank" rel="noopener"><code>README.md</code></a>):</p>
       <div class="prompt"><span class="lbl">Genie — feature store</span>
         Build a capital-markets online feature store: a Delta table
         <code>client_risk_features</code> (one row per client, PK + CDF) with exposure / PnL /
@@ -564,7 +473,7 @@ def lookup_client_risk(client: str) -&gt; str:
 
   <!-- ============ EX4 ============ -->
   <section class="ex" id="ex4">
-    <div class="exhead"><span class="exnum">7</span><h2>Give the assistant a memory</h2></div>
+    <div class="exhead"><span class="exnum">5</span><h2>Give the assistant a memory</h2></div>
     <span class="tag">LangGraph · PostgresSaver · Lakebase</span>
     <p>The assistant currently forgets each turn. Back it with a LangGraph <b>PostgresSaver</b>
       checkpointer pointed at Lakebase, and its conversation state becomes durable — surviving turns,
@@ -640,7 +549,7 @@ def lookup_client_risk(client: str) -&gt; str:
 
     <div class="path-notebook">
       <div class="pathlabel"><span class="dot"></span>Run the notebook</div>
-      <p>Run <a href="/editor/notebooks/4047276471057585" target="_blank" rel="noopener"><code>labs/ex4-agentic-memory/Agent_Memory.py</code></a>. Two Lakebase gotchas are baked in —
+      <p>Run <a href="../labs/05-agentic-memory/Agent_Memory.py" target="_blank" rel="noopener"><code>labs/05-agentic-memory/Agent_Memory.py</code></a>. Two Lakebase gotchas are baked in —
         connect with keyword args (not a URL), and subclass <code>ChatDatabricks</code> to drop
         <code>temperature</code> (Claude endpoints reject it):</p>
       <pre><code>conn = psycopg.connect(host=host, dbname="databricks_postgres",
@@ -664,6 +573,97 @@ agent = StateGraph(MessagesState)...compile(checkpointer=checkpointer)</code></p
       <code>thread_id</code>; the four <code>checkpoint%</code> tables exist; deserializing a blob finds
       the remembered client.</div>
   </section>
+  <!-- ============ DELTA -> LAKEBASE ============ -->
+  <section class="ex" id="deltalb">
+    <div class="exhead"><span class="exnum">6</span><h2>Delta → Lakebase sync (reverse ETL)</h2></div>
+    <span class="tag">synced tables</span>
+    <p>Take a lakehouse-curated <b>Delta</b> table (say a nightly client reference / risk-limits table)
+      and continuously sync it into your branch as an operational <code>lb_*</code> table, so the
+      trading app reads fresh, governed data over Postgres.</p>
+    <figure>
+      <svg viewBox="0 0 880 200" role="img" aria-label="A Delta table in Unity Catalog with a primary key and change data feed is synced by a serverless pipeline into an lb-prefixed table on the attendee's Lakebase branch.">
+        <defs><marker id="dl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+          <marker id="dll" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
+        <rect class="d-accent" x="16" y="66" width="220" height="66" rx="9"/>
+        <text class="d-tb" x="126" y="90" text-anchor="middle">client_reference</text>
+        <text class="d-ts" x="126" y="108" text-anchor="middle">Delta · UC · PK + CDF</text>
+        <rect class="d-box" x="332" y="66" width="200" height="66" rx="9"/>
+        <text class="d-tb" x="432" y="90" text-anchor="middle">synced-table pipeline</text>
+        <text class="d-ts" x="432" y="108" text-anchor="middle">serverless · SNAPSHOT/TRIGGERED/CONT.</text>
+        <rect class="d-lake" x="628" y="60" width="236" height="80" rx="10"/>
+        <text class="d-lbl" x="746" y="84" text-anchor="middle" style="fill:var(--lakebase)">◆ YOUR LAKEBASE BRANCH</text>
+        <text class="d-tb" x="746" y="112" text-anchor="middle">lb_client_reference</text>
+        <line class="d-line" x1="236" y1="99" x2="330" y2="99" marker-end="url(#dl)"/>
+        <text class="d-lbl" x="283" y="91" text-anchor="middle">sync</text>
+        <line class="d-line-lake" x1="532" y1="99" x2="626" y2="99" marker-end="url(#dll)"/>
+        <text class="d-lbl" x="579" y="91" text-anchor="middle" style="fill:var(--lakebase)">CDF</text>
+      </svg>
+      <figcaption>A synced table replicates the Delta source into your branch as <code>lb_*</code> via a
+        serverless pipeline (CDF-driven, incremental). Update the Delta row → re-sync → it lands in Lakebase.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>your Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>Delta source</span></div>
+    </figure>
+    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
+      <p>Run <a href="../labs/06-delta-to-lakebase-sync/Delta_To_Lakebase.py" target="_blank" rel="noopener"><code>labs/06-delta-to-lakebase-sync/Delta_To_Lakebase.py</code></a> — builds the Delta source
+        (PK + CDF), creates a Lakebase <b>synced table</b> into your branch, verifies the row count,
+        then updates a row and re-syncs. (~minutes to provision the sync pipeline the first time.)</p></div>
+    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Create a curated Delta table with a
+        PK + Change Data Feed, then create a Lakebase <b>synced table</b> (<code>lb_client_reference</code>)
+        into my branch, verify over psycopg that the rows match, update a row in Delta and re-sync to
+        show it propagate. Explain SNAPSHOT / TRIGGERED / CONTINUOUS. (Full prompt in the README.)</div></div>
+    <div class="note check"><b>✓ Check</b> — <code>lb_client_reference</code> exists on your branch with
+      the same rows as the Delta source; a Delta update propagates on re-sync.</div>
+  </section>
+
+  <!-- ============ LAKEBASE -> DELTA SCD1 ============ -->
+  <section class="ex" id="lbscd1">
+    <div class="exhead"><span class="exnum">7</span><h2>Lakebase → Delta (SCD Type 1 pipeline)</h2></div>
+    <span class="tag">CDC · Lakeflow · SCD1</span>
+    <p>The round trip: the trading app mutates <code>lb_*</code> tables all day; the lakehouse needs the
+      <b>current</b> picture for risk analytics. Capture the changes and land them in Delta with a
+      <b>Lakeflow (DLT) AUTO CDC</b> flow applying <b>SCD Type 1</b> (latest value wins, no history).</p>
+    <figure>
+      <svg viewBox="0 0 880 210" role="img" aria-label="Changes to the lb-prefixed Lakebase tables are extracted by watermark into an append-only bronze Delta table, then a Lakeflow DLT AUTO CDC flow applies SCD type 1 to produce current-state Delta tables.">
+        <defs><marker id="sc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+          <marker id="scl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
+        <rect class="d-lake" x="16" y="66" width="200" height="72" rx="10"/>
+        <text class="d-lbl" x="116" y="90" text-anchor="middle" style="fill:var(--lakebase)">◆ LAKEBASE BRANCH</text>
+        <text class="d-tb" x="116" y="112" text-anchor="middle">lb_positions · lb_limits</text>
+        <text class="d-ts" x="116" y="128" text-anchor="middle">app mutations (updated_at)</text>
+        <rect class="d-box" x="304" y="66" width="184" height="72" rx="9"/>
+        <text class="d-tb" x="396" y="94" text-anchor="middle">bronze Delta</text>
+        <text class="d-ts" x="396" y="112" text-anchor="middle">append-only changes</text>
+        <text class="d-ts" x="396" y="127" text-anchor="middle">watermark extract</text>
+        <rect class="d-accent" x="576" y="60" width="288" height="84" rx="9"/>
+        <text class="d-tb" x="720" y="88" text-anchor="middle">Lakeflow (DLT) AUTO CDC</text>
+        <text class="d-ts" x="720" y="107" text-anchor="middle">stored_as_scd_type = 1</text>
+        <text class="d-ts" x="720" y="124" text-anchor="middle">→ positions_current · limits_current</text>
+        <line class="d-line-lake" x1="216" y1="102" x2="302" y2="102" marker-end="url(#scl)"/>
+        <text class="d-lbl" x="259" y="94" text-anchor="middle" style="fill:var(--lakebase)">extract</text>
+        <line class="d-line" x1="488" y1="102" x2="574" y2="102" marker-end="url(#sc)"/>
+        <text class="d-lbl" x="531" y="94" text-anchor="middle">AUTO CDC</text>
+      </svg>
+      <figcaption>Changed <code>lb_*</code> rows are extracted (by watermark) into append-only bronze
+        Delta, then a DLT AUTO CDC flow applies <b>SCD Type 1</b> — one current row per key — for analytics.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase source</span><span><span class="swatch" style="background:var(--accent)"></span>Lakeflow pipeline</span></div>
+    </figure>
+    <div class="note wait"><b>Honest note:</b> Lakebase has no Delta-style change feed today, so this uses
+      the GA pattern — a watermark/incremental extract of the <code>lb_*</code> tables into bronze,
+      then DLT AUTO CDC for SCD1. (If your workspace gets native Lakebase→Delta CDC, swap the extract step.)</div>
+    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook + pipeline</div>
+      <p>Run <a href="../labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py" target="_blank" rel="noopener"><code>labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1.py</code></a> (seeds + mutates
+        <code>lb_*</code>, extracts to bronze, creates the Lakeflow pipeline from
+        <a href="../labs/07-lakebase-cdf-to-scd1/scd1_pipeline.py" target="_blank" rel="noopener"><code>scd1_pipeline.py</code></a>) and confirm each key shows only its latest value.</p></div>
+    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Extract changed rows from my Lakebase
+        <code>lb_*</code> tables (by <code>updated_at</code> watermark) into an append-only bronze Delta
+        table, then build a Lakeflow DLT AUTO CDC flow with <code>stored_as_scd_type=1</code> keyed by
+        PK to produce current-state Delta tables; prove that an update leaves one latest row per key.
+        (Full prompt in the README.)</div></div>
+    <div class="note check"><b>✓ Check</b> — after mutating a position/limit, the SCD1 target has exactly
+      one row per key showing the latest value.</div>
+  </section>
+
 
 </div>
 

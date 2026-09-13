@@ -1,4 +1,4 @@
-# Exercise — Lakebase → Delta (CDC) with an SCD Type 1 pipeline
+# Exercise 7 — Lakebase → Delta (CDC) with an SCD Type 1 pipeline
 
 **Track:** Lakehouse sync (outbound / round-trip) · **Prerequisite:** your Lakebase branch (Ex1–2) ·
 **Notebook-first** (Genie prompt below)

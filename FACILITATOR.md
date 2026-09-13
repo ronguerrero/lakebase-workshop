@@ -24,11 +24,11 @@ group. The reference solution notebook in each folder is the validated version t
 | **Lakebase** (managed Postgres, autoscaling projects) | the whole workshop | Required. The facilitator creates one shared project + **a branch per attendee** via `scripts/facilitator_setup.py`. **Mind the per-project branch limit** — past it, the script splits attendees across extra projects (`--max-branches-per-project`). |
 | **`databricks_auth` Postgres extension** | OAuth login roles for participants | Installed by the setup script (`CREATE EXTENSION databricks_auth`). |
 | **Foundation Model APIs** — a served pay-per-token Claude endpoint (e.g. `databricks-claude-sonnet-4-5`) | feature-store chatbot + memory agent LLM | Must be **served in your region** — check `system.ai` / serving endpoints directly; docs lag. Swap the endpoint name in the notebooks if yours differs. |
-| **Feature Engineering / Online Feature Store** | Ex6 (feature store) publish to Lakebase + Feature Serving | GA. `databricks-feature-engineering>=0.13.0`. |
-| **Model Serving — create endpoints** | Ex6 Feature Serving endpoint | Participants need permission to create serving endpoints. |
-| **Change Data Feed** | Ex4 (Delta→Lakebase sync) + Ex6 offline feature table (publish prerequisite) | GA (the notebooks set it). |
-| **Lakebase synced tables** (reverse ETL) | Ex4 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
-| **Lakeflow / DLT (serverless)** + a second UC schema `cm_scd_<user>` | Ex5 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Participants need permission to create serverless DLT pipelines. |
+| **Feature Engineering / Online Feature Store** | Ex4 (feature store) publish to Lakebase + Feature Serving | GA. `databricks-feature-engineering>=0.13.0`. |
+| **Model Serving — create endpoints** | Ex4 Feature Serving endpoint | Participants need permission to create serving endpoints. |
+| **Change Data Feed** | Ex6 (Delta→Lakebase sync) + Ex4 offline feature table (publish prerequisite) | GA (the notebooks set it). |
+| **Lakebase synced tables** (reverse ETL) | Ex6 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
+| **Lakeflow / DLT (serverless)** + a second UC schema `cm_scd_<user>` | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Participants need permission to create serverless DLT pipelines. |
 | **Lakebase REST data API** | Ex3 REST-vs-JDBC access | Preview/evolving — confirm the base path + query convention in App Connect / Data API. The notebook parameterizes `REST_BASE` and degrades gracefully. |
 
 ### Versions / packages (pinned in the notebooks)
@@ -82,8 +82,8 @@ apply. Simplest: put the attendees in one workspace group and grant that group.
 
 ## Suggested agenda (full day, ~6–6.5h — or split across two half-days at the break)
 
-The recommended flow is 1 → 7 (as ordered in `docs/attendee.html`). Folder names keep their original
-`ex1–ex4` labels plus descriptive folders for the newer exercises; the numbers below are the flow.
+The recommended flow is 1 → 7 (as ordered in `docs/attendee.html`). Folder names are numbered
+`labs/01…` – `labs/07…` to match the flow; the numbers below are the exercise/folder numbers.
 
 1. **Kickoff + Exercise 1 — Getting to know Lakebase (45m)** — what Lakebase is; tour the UI; run
    queries in the SQL Editor; then kick off `Autoscale_Load.py` and watch the branch **autoscale**
@@ -93,28 +93,28 @@ The recommended flow is 1 → 7 (as ordered in `docs/attendee.html`). Folder nam
 3. **Exercise 3 — Data APIs: REST vs JDBC (30m)** — reach the branch over an HTTP data API and over
    JDBC; when to use each.
 4. **Break (10m)**
-5. **Exercise 4 — Delta → Lakebase sync (30m)** — reverse-ETL a curated Delta table into the branch
-   as an `lb_*` synced table; watch an update propagate. **Short provisioning wait — teach through it.**
-6. **Exercise 5 — Lakebase → Delta, SCD Type 1 (40m)** — capture `lb_*` changes into bronze Delta,
-   then a Lakeflow AUTO CDC pipeline applies SCD1. **Pipeline creation runs a few minutes.**
-7. **Lunch / long break (30–45m)**
-8. **Exercise 6 — Online feature store + chatbot (75m)** — build the client-risk feature store,
+5. **Exercise 4 — Online feature store + chatbot (75m)** — build the client-risk feature store,
    publish to Lakebase, stand up the Feature Serving endpoint, build the Coverage Desk Assistant and
    watch it look up features. This is the money shot. **Two steps here run long and are meant to run
    in the background while you talk — see "Filling the provisioning waits" below.**
-9. **Exercise 7 — Agentic memory (45m)** — give the assistant persistent memory with LangGraph +
+6. **Exercise 5 — Agentic memory (45m)** — give the assistant persistent memory with LangGraph +
    Lakebase; inspect the checkpoint tables to see exactly where memory lives.
+7. **Lunch / long break (30–45m)**
+8. **Exercise 6 — Delta → Lakebase sync (30m)** — reverse-ETL a curated Delta table into the branch
+   as an `lb_*` synced table; watch an update propagate. **Short provisioning wait — teach through it.**
+9. **Exercise 7 — Lakebase → Delta, SCD Type 1 (40m)** — capture `lb_*` changes into bronze Delta,
+   then a Lakeflow AUTO CDC pipeline applies SCD1. **Pipeline creation runs a few minutes.**
 10. **Wrap-up (15m)** — where Lakebase fits in a CM stack; cleanup.
 
-> **Tight on time?** The core arc is 1 → 2 → 6 → 7 (get-to-know → connect → feature store → memory).
-> Exercises 3–5 (data APIs, Delta↔Lakebase sync) are self-contained and can be dropped or run as a
-> shorter integration-focused half-day.
+> **Tight on time?** The core arc is 1 → 2 → 4 → 5 (get-to-know → connect → feature store → memory).
+> Exercises 3, 6 and 7 (data APIs, Delta↔Lakebase sync) are self-contained and can be dropped or run
+> as a shorter integration-focused half-day.
 
 ---
 
 ## Filling the provisioning waits (feature-store exercise talk track)
 
-Two steps in the **feature-store exercise** (`labs/ex3-online-feature-store/`, flow #6) provision
+Two steps in the **feature-store exercise** (`labs/04-online-feature-store/`, flow #4) provision
 cloud infrastructure and block for a while. **This is expected, not a hang** — kick each one off,
 tell the room what's happening, and use the time to teach. Both waits are **fixed overhead,
 independent of data size** (the feature table is 9 rows). *(The Delta→Lakebase sync and the SCD1

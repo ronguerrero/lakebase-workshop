@@ -120,7 +120,7 @@
     <div class="sh"><span class="snum" style="background:var(--lakebase)">◆</span><h2>The model: one project, a branch per attendee</h2></div>
     <p>All attendees share <b>one Lakebase project</b>, but each works on their <b>own branch</b> — a
       Git-like, copy-on-write, fully-isolated clone of the project with its own compute endpoint. The
-      exercises connect to the attendee's own branch automatically (<a href="/editor/notebooks/4047276471057573" target="_blank" rel="noopener"><code>labs/_setup.py</code></a> derives
+      exercises connect to the attendee's own branch automatically (<a href="../labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a> derives
       the branch id from their username). Nobody steps on anyone else's data, and each person can
       freely create, load, and even break things on their branch.</p>
 
@@ -194,8 +194,8 @@
       <tr><td>Unity Catalog + a writable catalog</td><td>feature-store table + sync/SCD1 Delta tables</td><td>Placeholder <code>main</code>; pass yours with <code>--uc-catalog</code>.</td></tr>
       <tr><td>Serverless SQL warehouse + serverless notebooks</td><td>all exercises</td><td>No cluster needed.</td></tr>
       <tr><td>Lakebase (autoscaling projects)</td><td>the whole workshop</td><td>You create the project(s) + branches below. Mind the per-project branch limit.</td></tr>
-      <tr><td>Lakebase synced tables (reverse ETL)</td><td>Ex4 Delta → <code>lb_*</code></td><td>Evolving/preview — confirm the API + Preview status in the workspace.</td></tr>
-      <tr><td>Create serverless Lakeflow/DLT pipelines</td><td>Ex5 SCD1 pipeline</td><td>Attendees need this entitlement.</td></tr>
+      <tr><td>Lakebase synced tables (reverse ETL)</td><td>Ex6 Delta → <code>lb_*</code></td><td>Evolving/preview — confirm the API + Preview status in the workspace.</td></tr>
+      <tr><td>Create serverless Lakeflow/DLT pipelines</td><td>Ex7 SCD1 pipeline</td><td>Attendees need this entitlement.</td></tr>
       <tr><td>Served pay-per-token Claude endpoint</td><td>feature-store chatbot + memory agent</td><td>e.g. <code>databricks-claude-sonnet-4-5</code>; swap in the notebooks if yours differs.</td></tr>
       <tr><td>Create Model Serving endpoints</td><td>feature-store Feature Serving</td><td>Attendees need this entitlement.</td></tr>
     </table>
@@ -242,7 +242,7 @@
 
     <h3>Point attendees at the project</h3>
     <p>Attendees set <b>one</b> env var (or the <code>SHARED_PROJECT_ID</code> constant in
-      <a href="/editor/notebooks/4047276471057573" target="_blank" rel="noopener"><code>labs/_setup.py</code></a>). Their branch is derived from their username automatically:</p>
+      <a href="../labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a>). Their branch is derived from their username automatically:</p>
     <pre><code><span class="c"># each attendee, once, in their workspace:</span>
 LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
   </section>
@@ -276,17 +276,17 @@ LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
       <li><b>2 · Authentication + data</b> (45m) — connect from Python; generate the CM dataset; VS Code.</li>
       <li><b>3 · Data APIs — REST vs JDBC</b> (30m) — two ways an app reaches the branch.</li>
       <li>— break (10m) —</li>
-      <li><b>4 · Delta → Lakebase sync</b> (30m) — reverse-ETL a Delta table into an <code>lb_*</code> synced table.</li>
-      <li><b>5 · Lakebase → Delta, SCD Type 1</b> (40m) — capture <code>lb_*</code> changes; Lakeflow AUTO CDC.</li>
+      <li><b>4 · Online feature store + chatbot</b> (75m) — the money shot; two long waits (below).</li>
+      <li><b>5 · Agentic memory</b> (45m) — persistent memory with LangGraph + Lakebase.</li>
       <li>— lunch / long break (30–45m) —</li>
-      <li><b>6 · Online feature store + chatbot</b> (75m) — the money shot; two long waits (below).</li>
-      <li><b>7 · Agentic memory</b> (45m) — persistent memory with LangGraph + Lakebase.</li>
+      <li><b>6 · Delta → Lakebase sync</b> (30m) — reverse-ETL a Delta table into an <code>lb_*</code> synced table.</li>
+      <li><b>7 · Lakebase → Delta, SCD Type 1</b> (40m) — capture <code>lb_*</code> changes; Lakeflow AUTO CDC.</li>
       <li><b>Wrap</b> (15m).</li>
     </ol>
-    <p>Tight on time? The core arc is 1 → 2 → 6 → 7; exercises 3–5 are self-contained and can be
+    <p>Tight on time? The core arc is 1 → 2 → 4 → 5; exercises 3, 6 and 7 are self-contained and can be
       dropped or run as a shorter integration half-day. The full talk track, the hero thread (Air
       Canada's energy exposure), and honest talking points are in <code>FACILITATOR.md</code>.</p>
-    <div class="note warn"><b>Two steps in the feature-store exercise (6) run long — this is expected, not a hang.</b>
+    <div class="note warn"><b>Two steps in the feature-store exercise (4) run long — this is expected, not a hang.</b>
       <code>publish_table</code> stands up a serverless sync pipeline into Lakebase (~15–20 min the first
       time) and the Feature Serving endpoint takes ~10–15 min to provision. Both are fixed overhead
       regardless of data size — use the time to walk the architecture diagrams in the attendee guide.
@@ -307,7 +307,7 @@ LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
       <li><b>Attendee branches:</b> delete each <code>br · &lt;username&gt;</code> (Lakebase UI → project →
         Branches, or <code>w.postgres.delete_branch(...)</code>). This frees the branch count and its endpoint,
         and clears everything on it — the <code>cm_&lt;user&gt;</code>, <code>lb_*</code>, and <code>checkpoint%</code> tables.</li>
-      <li><b>Sync + SCD1 artifacts (Ex4/Ex5):</b> delete each synced table (removes its sync pipeline) and the
+      <li><b>Sync + SCD1 artifacts (Ex6/Ex7):</b> delete each synced table (removes its sync pipeline) and the
         Lakeflow/DLT pipeline; optionally drop the <code>cm_bronze_&lt;user&gt;</code> / <code>cm_scd_&lt;user&gt;</code> UC schemas.</li>
       <li><b>Feature-store artifacts:</b> delete each Feature Serving endpoint (<code>w.serving_endpoints.delete</code>)
         and online table (<code>w.feature_store.delete_online_table</code> — never <code>DROP TABLE</code>, which orphans data).</li>
