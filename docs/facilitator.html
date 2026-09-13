@@ -286,7 +286,7 @@ uc_catalog                 = main</code></pre>
   <section class="step" id="run">
     <div class="sh"><span class="snum">3</span><h2>Run of show &amp; the long waits</h2></div>
     <p>Suggested full-day flow (~6–6.5h, or split at the break into two half-days) — the recommended
-      order is 1 → 7:</p>
+      order is 1 → 8:</p>
     <ol class="steps">
       <li><b>1 · Getting to know Lakebase</b> (45m) — orientation + the SQL Editor, then the autoscale/load demo.</li>
       <li><b>2 · Authentication + data</b> (45m) — connect from Python; generate the CM dataset; VS Code.</li>
@@ -296,10 +296,11 @@ uc_catalog                 = main</code></pre>
       <li><b>5 · Agentic memory</b> (45m) — persistent memory with LangGraph + Lakebase.</li>
       <li>— lunch / long break (30–45m) —</li>
       <li><b>6 · Delta → Lakebase sync</b> (30m) — reverse-ETL a Delta table into an <code>lb_*</code> synced table.</li>
-      <li><b>7 · Lakebase → Delta, SCD Type 1</b> (40m) — capture <code>lb_*</code> changes; Lakeflow AUTO CDC.</li>
+      <li><b>7 · Lakebase → Delta, SCD Type 1</b> (40m) — turn on Lakebase CDF; Lakeflow AUTO CDC.</li>
+      <li><b>8 · Lakebase Search</b> (40m) — earnings-call PDFs → <code>pgvector</code> in Lakebase → an agent.</li>
       <li><b>Wrap</b> (15m).</li>
     </ol>
-    <p>Tight on time? The core arc is 1 → 2 → 4 → 5; exercises 3, 6 and 7 are self-contained and can be
+    <p>Tight on time? The core arc is 1 → 2 → 4 → 5; exercises 3, 6, 7 and 8 are self-contained and can be
       dropped or run as a shorter integration half-day. The full talk track, the hero thread (Air
       Canada's energy exposure), and honest talking points are in <code>FACILITATOR.md</code>.</p>
     <div class="note warn"><b>Two steps in the feature-store exercise (4) run long — this is expected, not a hang.</b>

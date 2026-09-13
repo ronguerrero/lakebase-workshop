@@ -166,7 +166,7 @@
       both ways with the lakehouse, serve live client-risk features to a chatbot, and give that chatbot
       a memory. One managed Postgres, the whole desk.</p>
     <div class="meta">
-      <span><b>~5h</b> · seven exercises</span>
+      <span><b>~5h</b> · eight exercises</span>
       <span><b>Serverless</b> · no cluster</span>
       <span>Hero client · <b>Air Canada (CL-AC)</b></span>
     </div>
@@ -664,6 +664,52 @@ agent = StateGraph(MessagesState)...compile(checkpointer=checkpointer)</code></p
         row per key. (Full prompt in the README.)</div></div>
     <div class="note check"><b>✓ Check</b> — after mutating a position/limit, the SCD1 target has exactly
       one row per key showing the latest value.</div>
+  </section>
+
+  <!-- ============ LAKEBASE SEARCH ============ -->
+  <section class="ex" id="lbsearch">
+    <div class="exhead"><span class="exnum">8</span><h2>Lakebase Search (pgvector + an agent)</h2></div>
+    <span class="tag">pgvector · embeddings · agent</span>
+    <p>An analyst piles up <b>earnings-call PDFs</b> for names they cover and wants to <i>ask questions</i>
+      across them. Because <b>Lakebase is Postgres</b>, it doubles as your <b>vector store</b> via
+      <code>pgvector</code> — no separate vector DB. Parse the PDFs, embed the chunks, store the vectors
+      in Lakebase, and put a <b>LangChain agent</b> in front whose retrieval tool is a single
+      <code>&lt;=&gt;</code> similarity query.</p>
+    <figure>
+      <svg viewBox="0 0 880 200" role="img" aria-label="Earnings-call PDFs are parsed and embedded, the vectors are stored in Lakebase with pgvector, and a LangChain agent queries them with a cosine similarity search to answer questions with citations.">
+        <defs><marker id="se" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+          <marker id="sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
+        <rect class="d-box" x="16" y="64" width="176" height="72" rx="9"/>
+        <text class="d-tb" x="104" y="92" text-anchor="middle">earnings-call PDFs</text>
+        <text class="d-ts" x="104" y="110" text-anchor="middle">parse · chunk · embed</text>
+        <rect class="d-lake" x="336" y="58" width="208" height="84" rx="10"/>
+        <text class="d-lbl" x="440" y="84" text-anchor="middle" style="fill:var(--lakebase)">◆ LAKEBASE (pgvector)</text>
+        <text class="d-tb" x="440" y="106" text-anchor="middle">earnings_chunks</text>
+        <text class="d-ts" x="440" y="123" text-anchor="middle">vector(N) + HNSW index</text>
+        <rect class="d-accent" x="688" y="64" width="176" height="72" rx="9"/>
+        <text class="d-tb" x="776" y="92" text-anchor="middle">LangChain agent</text>
+        <text class="d-ts" x="776" y="110" text-anchor="middle">tool → &lt;=&gt; search</text>
+        <line class="d-line" x1="192" y1="100" x2="334" y2="100" marker-end="url(#se)"/>
+        <text class="d-lbl" x="263" y="92" text-anchor="middle">store vectors</text>
+        <line class="d-line-lake" x1="544" y1="100" x2="686" y2="100" marker-end="url(#sel)"/>
+        <text class="d-lbl" x="615" y="92" text-anchor="middle" style="fill:var(--lakebase)">retrieve</text>
+      </svg>
+      <figcaption>PDFs are embedded and stored in <b>Lakebase</b> with <code>pgvector</code>; a LangChain
+        agent retrieves the closest passages by cosine distance and answers with citations.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase vector store</span><span><span class="swatch" style="background:var(--accent)"></span>agent</span></div>
+    </figure>
+    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Run the notebook</div>
+      <p>Run <a href="../labs/08-lakebase-search/Lakebase_Search.py" target="_blank" rel="noopener"><code>labs/08-lakebase-search/Lakebase_Search.py</code></a> — writes synthetic earnings-call
+        PDFs to a UC Volume, embeds them into <code>cm_&lt;you&gt;.earnings_chunks</code> (Lakebase
+        <code>pgvector</code>), then asks the agent about Air Canada's fuel exposure and watches it search.</p></div>
+    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Parse a few earnings-call PDFs, embed
+        the chunks with a Databricks FM embeddings endpoint, store the vectors in Lakebase with
+        <code>pgvector</code> (<code>vector(N)</code> + HNSW), and build a LangChain agent whose tool runs
+        an <code>ORDER BY embedding &lt;=&gt; query</code> search; ask it about a company's earnings call.
+        (Full prompt in the README.)</div></div>
+    <div class="note check"><b>✓ Check</b> — <code>earnings_chunks</code> holds one row per chunk with a
+      <code>vector</code> column; the agent answers the fuel-exposure question by citing Air Canada's call.</div>
   </section>
 
 

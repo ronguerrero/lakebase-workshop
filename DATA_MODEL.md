@@ -1,6 +1,6 @@
 # Data model — CIBC Capital Markets Lakebase Workshop
 
-What the tables are, what they hold, and how they connect across the seven exercises. Read this
+What the tables are, what they hold, and how they connect across the eight exercises. Read this
 before the session so the room understands the shared world every exercise builds on.
 
 Everything is **synthetic and generated from scratch** — no external files, no customer data. The
@@ -193,6 +193,7 @@ Numbers below are the exercise/folder numbers (`labs/0N-…`), in recommended fl
 | 5 | **Agentic memory** (`05-…`) | — | `checkpoint%` tables |
 | 6 | **Delta → Lakebase sync** (`06-…`) | Delta `client_reference` | `lb_client_reference` (synced onto the branch) |
 | 7 | **Lakebase → Delta, SCD1 via CDF** (`07-…`) | `cm_<user>_ops.positions`, `.limits` | CDF → `lb_positions_history` / `lb_limits_history` (Delta, auto) → `positions_current` / `limits_current` (SCD1 Delta) |
+| 8 | **Lakebase Search** (`08-…`) | synthetic earnings-call PDFs (UC Volume `cm_<user>.earnings_pdfs`) | `cm_<user>.earnings_chunks` (Lakebase `pgvector`: content + `vector(N)` embedding + HNSW index) |
 
 > **Note on where the feature-store exercise reads from.** Its offline feature computation runs in a
 > Spark/serverless notebook and builds its own Delta source of the same capital-markets shape (so it's

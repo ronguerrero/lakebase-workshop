@@ -9,7 +9,7 @@
 # MAGIC
 # MAGIC | | |
 # MAGIC |---|---|
-# MAGIC | **~5h** · seven exercises | **Serverless** · no cluster |
+# MAGIC | **~5h** · eight exercises | **Serverless** · no cluster |
 # MAGIC | Hero client · **Air Canada (CL-AC)** | You work on **your own branch** of a shared project |
 # MAGIC
 # MAGIC **Before you start (once):** open <a href="$./labs/_setup">labs/_setup</a> and set the two
@@ -20,7 +20,7 @@
 # MAGIC auto-routed to the project that holds your branch. Your `cm_<user>` schema is created for you.
 # MAGIC
 # MAGIC **How to use this guide:** the links below open each exercise notebook in your clone (nothing to run),
-# MAGIC and the architecture diagrams are inline. Work the exercises in order 1 → 7 — open each notebook and **Run all**.
+# MAGIC and the architecture diagrams are inline. Work the exercises in order 1 → 8 — open each notebook and **Run all**.
 
 
 # COMMAND ----------
@@ -38,6 +38,7 @@
 # MAGIC 5. <a href="$./labs/05-agentic-memory/Agent_Memory">Agentic Memory</a>
 # MAGIC 6. <a href="$./labs/06-delta-to-lakebase-sync/Delta_To_Lakebase">Delta → Lakebase sync</a>
 # MAGIC 7. <a href="$./labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1">Lakebase → Delta, SCD1 (driver)</a> &nbsp;&middot;&nbsp; <a href="$./labs/07-lakebase-cdf-to-scd1/scd1_pipeline">scd1_pipeline</a>
+# MAGIC 8. <a href="$./labs/08-lakebase-search/Lakebase_Search">Lakebase Search — earnings-call PDFs → pgvector → an agent</a>
 
 # COMMAND ----------
 

@@ -1,7 +1,7 @@
 # Facilitator guide — CIBC Capital Markets Lakebase Workshop
 
 ## Shape
-One capital-markets desk, seven exercises. All participants share **one Lakebase project**, and each
+One capital-markets desk, eight exercises. All participants share **one Lakebase project**, and each
 works on their **own branch** of it — a Git-like, isolated, copy-on-write clone with its own compute
 endpoint (the exercises connect to the attendee's own branch automatically). They get to know the
 platform (and watch a branch **autoscale** under load), connect to it, generate a realistic CM
@@ -30,6 +30,9 @@ group. The reference solution notebook in each folder is the validated version t
 | **Lakebase synced tables** (reverse ETL) | Ex6 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
 | **Lakebase Change Data Feed (CDF)** | Ex7 — auto-materializes Lakebase changes into `cm_<user>.lb_*_history` Delta tables (`w.postgres.create_cdf_config`) | **Public Preview.** Two facilitator-facing requirements: **(a)** the shared UC catalog must **not use default storage** (else the history tables never appear), and **(b)** creating a feed needs **CAN MANAGE on the Lakebase project** — see the CDF note under Permissions. |
 | **Lakeflow / DLT (serverless)** — writes into the attendee's `cm_<user>` schema | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Attendees create the pipeline using their workspace access — there is **no separate "create pipeline" entitlement** to grant; just have serverless DLT enabled. |
+| **`pgvector` extension** | Ex8 — vector store in Lakebase (`CREATE EXTENSION vector`) | Normally available in Lakebase; the notebook enables it. If it errors, confirm availability for the project. |
+| **FM embeddings endpoint** — a served pay-per-token model (e.g. `databricks-gte-large-en`) | Ex8 — embeds the earnings-call chunks | Must be served in your region (list with `w.serving_endpoints.list()`). System endpoint — no per-user grant. Swap the name in the notebook if yours differs. |
+| **Unity Catalog Volumes** | Ex8 — stores the source PDFs in `cm_<user>.earnings_pdfs` | The attendee owns their schema, so `CREATE VOLUME` works with no extra grant. |
 | **Lakebase REST data API** | Ex3 REST-vs-JDBC access | Preview/evolving — confirm the base path + query convention in App Connect / Data API. The notebook parameterizes `REST_BASE` and degrades gracefully. |
 
 ### Versions / packages (pinned in the notebooks)
@@ -38,7 +41,8 @@ group. The reference solution notebook in each folder is the validated version t
   resolved version at runtime rather than co-pinning, to avoid a pip backtracking loop with
   `databricks-feature-engineering`)
 - `databricks-feature-engineering>=0.13.0`, `protobuf>=5.29.5,<6` (feature store)
-- `langgraph`, `langgraph-checkpoint-postgres`, `langchain-databricks`, `langchain>=0.3,<0.4`, `mlflow` (feature-store chatbot / memory agent)
+- `langgraph`, `langgraph-checkpoint-postgres`, `langchain-databricks`, `langchain>=0.3,<0.4`, `mlflow` (feature-store chatbot / memory agent / Lakebase search)
+- `pypdf>=4.0`, `reportlab>=4.0` (Ex8 — parse and synthesize the earnings-call PDFs; `pgvector` is enabled server-side via `CREATE EXTENSION vector`)
 
 ---
 
@@ -99,8 +103,8 @@ Simplest: put the attendees in one workspace group and grant that group.
 
 ## Suggested agenda (full day, ~6–6.5h — or split across two half-days at the break)
 
-The recommended flow is 1 → 7 (as ordered in `docs/attendee.html`). Folder names are numbered
-`labs/01…` – `labs/07…` to match the flow; the numbers below are the exercise/folder numbers.
+The recommended flow is 1 → 8 (as ordered in `docs/attendee.html`). Folder names are numbered
+`labs/01…` – `labs/08…` to match the flow; the numbers below are the exercise/folder numbers.
 
 1. **Kickoff + Exercise 1 — Getting to know Lakebase (45m)** — what Lakebase is; tour the UI; run
    queries in the SQL Editor; then kick off `Autoscale_Load.py` and watch the branch **autoscale**
@@ -123,7 +127,10 @@ The recommended flow is 1 → 7 (as ordered in `docs/attendee.html`). Folder nam
    changes into `lb_*_history` Delta), then a Lakeflow AUTO CDC pipeline applies SCD1. **CDF is Public
    Preview — pre-check the catalog-storage + CAN MANAGE requirements above; pipeline creation runs a few
    minutes.**
-10. **Wrap-up (15m)** — where Lakebase fits in a CM stack; cleanup.
+10. **Exercise 8 — Lakebase Search (40m)** — parse earnings-call PDFs, embed them, and store the
+    vectors in **Lakebase (`pgvector`)**; then a LangChain **agent** searches them and answers with
+    citations. Ties the day together: Lakebase as vector store + the agent pattern from Ex4/Ex5.
+11. **Wrap-up (15m)** — where Lakebase fits in a CM stack; cleanup.
 
 > **Tight on time?** The core arc is 1 → 2 → 4 → 5 (get-to-know → connect → feature store → memory).
 > Exercises 3, 6 and 7 (data APIs, Delta↔Lakebase sync) are self-contained and can be dropped or run

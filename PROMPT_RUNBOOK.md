@@ -161,9 +161,26 @@ sequencing by `_sort_by`) into `positions_current` / `limits_current`.
 
 ---
 
+## Exercise 8 — Lakebase Search (pgvector + agent)
+**A:** `labs/08-lakebase-search/README.md` → *The prompt*. **B:** `Lakebase_Search.py`. Generates
+synthetic earnings-call PDFs (Air Canada, Suncor, BCE) into a UC Volume, parses them (pypdf), chunks +
+embeds via a Databricks FM embeddings endpoint (`databricks-gte-large-en`), stores the vectors in
+**Lakebase `pgvector`** (`cm_<me>.earnings_chunks`, HNSW cosine index), and puts a **LangChain agent**
+in front whose one tool runs the `<=>` similarity search. The point: **Lakebase is your vector store**
+— retrieval where the data already lives.
+
+✓ `earnings_chunks` exists in Lakebase with a `vector` column; a search for "Air Canada fuel exposure"
+returns Air Canada passages; the agent answers by calling the tool and citing the call.
+
+> **Endpoints:** embeddings endpoint name varies by region (`w.serving_endpoints.list()`); the LLM is
+> the `llm_endpoint` widget. `pgvector` is enabled server-side (`CREATE EXTENSION vector`).
+
+---
+
 ## The hero thread (keep it consistent)
 **Air Canada (`CL-AC`)** carries a large WTI/heating-oil energy book → HIGH-risk features in the
 feature-store exercise, the client the coverage officer tells the assistant about in the memory
-exercise, the limit raised in the Delta→Lakebase sync, and the position that changes in SCD1. Same
-client, threaded through every Lakebase use: OLTP data (Ex2), REST/JDBC reads (Ex3), feature serving
-(Ex4), agent memory (Ex5), reverse-ETL reference (Ex6), change capture (Ex7).
+exercise, the limit raised in the Delta→Lakebase sync, the position that changes in SCD1, and the name
+whose earnings-call fuel exposure the search agent surfaces (Ex8). Same client, threaded through every
+Lakebase use: OLTP data (Ex2), REST/JDBC reads (Ex3), feature serving (Ex4), agent memory (Ex5),
+reverse-ETL reference (Ex6), change capture (Ex7), vector search (Ex8).

@@ -13,7 +13,7 @@ produce (already validated), so a facilitator can compare and unblock anyone.
 
 ---
 
-## The seven exercises
+## The eight exercises
 
 | # | Exercise | Folder | What you build |
 |---|----------|--------|----------------|
@@ -24,6 +24,7 @@ produce (already validated), so a facilitator can compare and unblock anyone.
 | 5 | **Agentic Memory** | `labs/05-agentic-memory/` | A LangGraph agent with persistent conversation memory in Lakebase Postgres |
 | 6 | **Delta → Lakebase sync** | `labs/06-delta-to-lakebase-sync/` | Reverse-ETL a curated Delta table into your branch as an `lb_*` synced table |
 | 7 | **Lakebase → Delta (SCD Type 1) via CDF** | `labs/07-lakebase-cdf-to-scd1/` | Turn on **Lakebase Change Data Feed** (auto-creates `lb_*_history` Delta), then a Lakeflow AUTO CDC pipeline applies SCD1 |
+| 8 | **Lakebase Search (pgvector + agent)** | `labs/08-lakebase-search/` | Earnings-call PDFs → embeddings in **Lakebase `pgvector`** → a LangChain **agent** that searches them and answers with citations |
 
 Exercise numbers match the folder names (`labs/0N-…`) and the recommended flow in `docs/attendee.html`
 / `PROMPT_RUNBOOK.md`.
@@ -78,7 +79,7 @@ See **`docs/facilitator.html`** for the visual setup walkthrough (topology diagr
 2. Open **`START_HERE`** and **Run all** — it's the guided walkthrough, and its first cell prints
    working links to every exercise notebook *in your clone* (resolved at runtime, so they work no
    matter where you cloned it). Prefer a browser? Open `docs/attendee.html` for the visual version.
-3. Work the exercises in order 1 → 7. Each has a reference notebook to run **and** a Genie Code
+3. Work the exercises in order 1 → 8. Each has a reference notebook to run **and** a Genie Code
    prompt you can paste into the Databricks Assistant instead.
 
 ---
@@ -104,6 +105,7 @@ labs/04-online-feature-store/       Feature_Store.py + Coverage_Desk_Chatbot.py
 labs/05-agentic-memory/             Agent_Memory.py
 labs/06-delta-to-lakebase-sync/     Delta_To_Lakebase.py — reverse-ETL Delta → lb_* synced table
 labs/07-lakebase-cdf-to-scd1/       Lakebase_CDF_To_SCD1.py + scd1_pipeline.py — Lakebase CDF → lb_*_history → SCD1
+labs/08-lakebase-search/            Lakebase_Search.py — earnings-call PDFs → pgvector in Lakebase → an agent
 docs/attendee.html · docs/facilitator.html   self-contained lab guides (open in a browser)
 DATA_MODEL.md · FACILITATOR.md · PROMPT_RUNBOOK.md
 ```
