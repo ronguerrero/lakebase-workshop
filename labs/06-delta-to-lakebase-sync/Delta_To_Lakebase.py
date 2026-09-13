@@ -41,7 +41,7 @@ dbutils.library.restartPython()
 
 dbutils.widgets.text("uc_catalog", "main", "Unity Catalog catalog")
 UC_CATALOG = dbutils.widgets.get("uc_catalog") or "main"
-UC_SCHEMA = f"cm_features_{_sanitize(user_email).replace('-', '_')}"
+UC_SCHEMA = f"cm_{_sanitize(user_email).replace('-', '_')}"   # your per-attendee schema (owned by you)
 
 SOURCE_TABLE = f"{UC_CATALOG}.{UC_SCHEMA}.client_reference"     # Delta source (lakehouse)
 # The synced table registers in UC and materializes in Lakebase; name it lb_* so the
@@ -65,7 +65,12 @@ print(f"→ Lakebase:      project={PROJECT_ID}  branch={USER_BRANCH}  table={PG
 
 # COMMAND ----------
 
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {UC_CATALOG}.{UC_SCHEMA}")
+# Your facilitator pre-creates this schema and makes you its owner; create it only if you
+# have the privilege (harmless no-op when it already exists).
+try:
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {UC_CATALOG}.{UC_SCHEMA}")
+except Exception as _e:
+    print(f"(using pre-provisioned schema {UC_CATALOG}.{UC_SCHEMA}: {str(_e)[:80]})")
 
 from pyspark.sql.types import (
     StructType, StructField, StringType, DoubleType, TimestampType,

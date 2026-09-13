@@ -28,13 +28,13 @@ can review results together.
                     │
         ┌───────────┴─────────────────────────────────────────────┐
         ▼ (Ex6: Delta → Lakebase)                                  ▼ (Ex7: Lakebase → Delta)
-  Unity Catalog  <catalog>.cm_features_<user>.client_reference    <catalog>.cm_bronze_<user>.lb_*_changes  (append-only)
+  Unity Catalog  <catalog>.cm_<user>.client_reference    <catalog>.cm_<user>.lb_*_changes  (append-only)
         (Delta, PK + CDF; synced INTO Lakebase as lb_client_reference)          │  Lakeflow AUTO CDC, SCD Type 1
                                                                                  ▼
-                                                              <catalog>.cm_scd_<user>.positions_current / limits_current
+                                                              <catalog>.cm_<user>.positions_current / limits_current
                     │
                     ▼  (Ex4: feature store)
-  Unity Catalog   <catalog>.cm_features_<user>.client_risk_features   (Delta, offline, PK + CDF)
+  Unity Catalog   <catalog>.cm_<user>.client_risk_features   (Delta, offline, PK + CDF)
                     │  Ex4 computes per-client risk features, then PUBLISHES them …
                     ▼
   Lakebase online store (the same project)  client_risk_features_online   (Postgres)
@@ -127,7 +127,7 @@ Executed trades.
 ---
 
 ## 6. `lb_client_reference` (Lakebase synced table — Ex6, Delta → Lakebase)
-Exercise 6's reverse-ETL target. A curated Delta table `<catalog>.cm_features_<user>.client_reference`
+Exercise 6's reverse-ETL target. A curated Delta table `<catalog>.cm_<user>.client_reference`
 (9 clients: `client_id` PK, `legal_name`, `sector`, `credit_rating`, `risk_limit_cad`,
 `coverage_officer`, `updated_at`; PK + Change Data Feed) is **synced into the attendee's branch** as a
 real Postgres table `lb_client_reference` via `w.postgres.create_synced_table`. Lakehouse-curated
@@ -139,8 +139,8 @@ Exercise 7's operational source + its lakehouse capture. Two `lb_*` tables the "
 the branch — `lb_positions` (`position_id` PK, `client_id`, `instrument_id`, `net_qty`, `book`,
 `updated_at`) and `lb_limits` (`limit_id` PK, `client_id`, `limit_type`, `limit_cad`, `updated_at`) —
 are watermark-extracted (Lakebase has **no** Delta-style CDF) into append-only bronze Delta
-`<catalog>.cm_bronze_<user>.lb_*_changes`, then a Lakeflow **AUTO CDC SCD Type 1** pipeline produces
-current-state tables `<catalog>.cm_scd_<user>.positions_current` / `limits_current` — one row per key,
+`<catalog>.cm_<user>.lb_*_changes`, then a Lakeflow **AUTO CDC SCD Type 1** pipeline produces
+current-state tables `<catalog>.cm_<user>.positions_current` / `limits_current` — one row per key,
 latest wins. Demo: position 1's `net_qty` goes 250 → 900; bronze holds both versions,
 `positions_current` holds only the latest.
 

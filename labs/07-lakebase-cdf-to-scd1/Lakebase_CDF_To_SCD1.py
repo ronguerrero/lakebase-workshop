@@ -13,7 +13,7 @@
 # MAGIC  Lakebase lb_positions / lb_limits  ──(watermark extract)──▶  bronze Delta (append-only changes)
 # MAGIC                                                                      │  Lakeflow AUTO CDC, SCD1
 # MAGIC                                                                      ▼
-# MAGIC                                              cm_scd_<you>.positions_current / limits_current
+# MAGIC                                              cm_<you>.positions_current / limits_current
 # MAGIC ```
 # MAGIC
 # MAGIC > **How changes leave Lakebase — read this.** Lakebase is managed **Postgres**; it does *not*
@@ -44,8 +44,11 @@ from pyspark.sql import functions as F
 dbutils.widgets.text("uc_catalog", "main", "Unity Catalog catalog")
 UC_CATALOG = dbutils.widgets.get("uc_catalog") or "main"
 u = _sanitize(user_email).replace("-", "_")
-BRONZE_SCHEMA = f"cm_bronze_{u}"      # append-only change extracts land here
-SCD_SCHEMA = f"cm_scd_{u}"            # SCD1 current-state targets (pipeline writes here)
+# One per-attendee schema (owned by you) holds BOTH the bronze change extracts and the
+# SCD1 current-state tables — distinct table names, no need for separate schemas.
+UC_SCHEMA = f"cm_{u}"
+BRONZE_SCHEMA = UC_SCHEMA             # append-only change extracts land here
+SCD_SCHEMA = UC_SCHEMA               # SCD1 current-state targets (the DLT pipeline writes here)
 
 # Where scd1_pipeline.py lives in the workspace (sibling of this notebook). Override the widget if
 # your import path differs.
@@ -57,11 +60,14 @@ except Exception:
 dbutils.widgets.text("pipeline_notebook_path", _default_pipe, "scd1_pipeline notebook path")
 PIPELINE_PATH = dbutils.widgets.get("pipeline_notebook_path")
 
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {UC_CATALOG}.{BRONZE_SCHEMA}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {UC_CATALOG}.{SCD_SCHEMA}")
+# Your facilitator pre-creates this schema and makes you its owner; create it only if you
+# have the privilege (harmless no-op when it already exists).
+try:
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {UC_CATALOG}.{UC_SCHEMA}")
+except Exception as _e:
+    print(f"(using pre-provisioned schema {UC_CATALOG}.{UC_SCHEMA}: {str(_e)[:80]})")
 print(f"Catalog:        {UC_CATALOG}")
-print(f"Bronze schema:  {BRONZE_SCHEMA}   (change extracts)")
-print(f"SCD1 schema:    {SCD_SCHEMA}       (pipeline targets)")
+print(f"Schema:         {UC_SCHEMA}   (holds bronze change tables + SCD1 current tables)")
 print(f"Pipeline src:   {PIPELINE_PATH}")
 
 # COMMAND ----------

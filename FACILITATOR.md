@@ -19,7 +19,7 @@ group. The reference solution notebook in each folder is the validated version t
 
 | Capability | Used for | Status / how to enable |
 |---|---|---|
-| **Unity Catalog** + a writable catalog | feature-store offline table (`<catalog>.cm_features_<user>`) + the sync/SCD1 exercises' Delta tables | Required. Placeholder `main`. |
+| **Unity Catalog** + a writable catalog | feature-store offline table (`<catalog>.cm_<user>`) + the sync/SCD1 exercises' Delta tables | Required. Placeholder `main`. |
 | **Serverless SQL warehouse** + serverless notebooks/jobs | all exercises run on serverless | Required — no cluster needed. Note the warehouse id. |
 | **Lakebase** (managed Postgres, autoscaling projects) | the whole workshop | Required. The facilitator creates one shared project + **a branch per attendee** via `scripts/facilitator_setup.py`. **Mind the per-project branch limit** — past it, the script splits attendees across extra projects (`--max-branches-per-project`). |
 | **`databricks_auth` Postgres extension** | OAuth login roles for participants | Installed by the setup script (`CREATE EXTENSION databricks_auth`). |
@@ -28,7 +28,7 @@ group. The reference solution notebook in each folder is the validated version t
 | **Model Serving — create endpoints** | Ex4 Feature Serving endpoint | Participants need permission to create serving endpoints. |
 | **Change Data Feed** | Ex6 (Delta→Lakebase sync) + Ex4 offline feature table (publish prerequisite) | GA (the notebooks set it). |
 | **Lakebase synced tables** (reverse ETL) | Ex6 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
-| **Lakeflow / DLT (serverless)** + a second UC schema `cm_scd_<user>` | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Participants need permission to create serverless DLT pipelines. |
+| **Lakeflow / DLT (serverless)** — writes into the attendee's `cm_<user>` schema | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Participants need permission to create serverless DLT pipelines. |
 | **Lakebase REST data API** | Ex3 REST-vs-JDBC access | Preview/evolving — confirm the base path + query convention in App Connect / Data API. The notebook parameterizes `REST_BASE` and degrades gracefully. |
 
 ### Versions / packages (pinned in the notebooks)
@@ -52,13 +52,15 @@ apply. Simplest: put the attendees in one workspace group and grant that group.
 - **A branch per attendee** — forked off production (`br · <username>`, `no_expiry`) with its own
   primary READ/WRITE endpoint. The exercises connect to the attendee's own branch automatically.
 - (with `--app-name`) the Lab app's service principal → project `CAN_MANAGE` + a Postgres role.
-- (with `--uc-catalog`) emits the UC `USE CATALOG` + `CREATE SCHEMA` grants for the feature-store /
-  sync / SCD1 exercises.
+- (with `--uc-catalog`) **creates the shared UC catalog** + one schema per attendee (`cm_<user>`)
+  **owned by that attendee** (so they can create tables/objects in it), and grants everyone
+  `USE CATALOG`. All via the UC SDK — no SQL warehouse.
 
 **You still apply manually (the script prints these):**
 - **Compute:** `CAN USE` on the serverless SQL warehouse; serverless notebooks/jobs enabled.
-- **Unity Catalog:** `USE CATALOG` + `CREATE SCHEMA` on the workshop catalog (feature-store Delta
-  table + the sync/SCD1 exercises) — or pass `--uc-catalog` and let the script emit them.
+- **Unity Catalog:** handled by `--uc-catalog` above (catalog + a per-attendee `cm_<user>` schema
+  they own + `USE CATALOG`). Only do this by hand if you skip that flag — and note creating the
+  catalog needs `CREATE CATALOG` / metastore admin.
 - **Model Serving / Foundation Models:** `CAN QUERY` on the pay-per-token FM endpoint (feature-store
   chatbot + memory agent), and the entitlement to **create serving endpoints** (feature-store Feature
   Serving endpoint).
@@ -188,8 +190,8 @@ is already serverless; the cost is pipeline orchestration + initial snapshot, wh
   everything on it: the `cm_<user>` tables, the `lb_*` synced tables, and the `checkpoint%` tables.
 - **Delta → Lakebase sync exercise:** delete the synced table (removes its sync pipeline); the `lb_*`
   table lives on the branch, so dropping the branch also clears it.
-- **SCD1 exercise:** delete the Lakeflow/DLT pipeline; optionally drop the `cm_bronze_<user>` and
-  `cm_scd_<user>` UC schemas.
+- **SCD1 exercise:** delete the Lakeflow/DLT pipeline (its `positions_current` / `limits_current`
+  tables live in the attendee's `cm_<user>` schema, dropped below).
 - **Feature-store exercise:** delete the online table with the SDK (`delete_online_table`) — not
   `DROP TABLE`, which orphans data; delete the Feature Serving endpoint; optionally drop the Delta
   feature schema.

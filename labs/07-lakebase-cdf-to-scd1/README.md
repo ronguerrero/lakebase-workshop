@@ -36,12 +36,12 @@ unchanged.
    triggers one update → verifies the result.
 2. `scd1_pipeline.py` is the **pipeline source** — it is deployed as a Lakeflow (DLT) pipeline, not run
    inline. The driver creates the pipeline pointing at it and passes `cm.catalog` / `cm.bronze_schema`
-   as configuration; the UC target is the pipeline's `catalog` + `schema` (`cm_scd_<you>`).
+   as configuration; the UC target is the pipeline's `catalog` + `schema` (`cm_<you>`).
 
 ### Create the pipeline in the UI instead (optional)
 If you'd rather click: **Workflows → Delta Live Tables / Lakeflow → Create pipeline** → Serverless →
-add `scd1_pipeline.py` as a notebook library → set the target catalog and schema `cm_scd_<you>` → add
-configuration `cm.catalog=<your catalog>` and `cm.bronze_schema=cm_bronze_<you>` → Start.
+add `scd1_pipeline.py` as a notebook library → set the target catalog and schema `cm_<you>` → add
+configuration `cm.catalog=<your catalog>` and `cm.bronze_schema=cm_<you>` → Start.
 
 ## The prompt (Genie Code)
 Paste into a fresh Genie Code chat on a serverless notebook (the reviewed reference is the two `.py`
@@ -57,11 +57,11 @@ DRIVER notebook:
   and lb_limits(limit_id PK, client_id, limit_type, limit_cad, updated_at) exist on my branch
   (get_connection()); seed a small book if empty.
 - Incremental extract: read each lb_* table over psycopg and APPEND it to an append-only bronze Delta
-  table main.cm_bronze_<me>.lb_<entity>_changes, tagging _op='UPSERT' and _batch_ts.
+  table main.cm_<me>.lb_<entity>_changes, tagging _op='UPSERT' and _batch_ts.
 - Then mutate Lakebase (UPDATE a position's net_qty and a limit, bump updated_at, INSERT a new
   position) and re-extract, so bronze has two versions of the changed keys.
 - Create a serverless Lakeflow (DLT) pipeline from scd1_pipeline.py with UC target catalog + schema
-  cm_scd_<me> and configuration cm.catalog / cm.bronze_schema; start one update and wait.
+  cm_<me> and configuration cm.catalog / cm.bronze_schema; start one update and wait.
 - Verify positions_current has one row per position_id and position 1 shows the updated net_qty.
 
 PIPELINE notebook (scd1_pipeline.py): use dlt. Read each bronze change table as a streaming table,

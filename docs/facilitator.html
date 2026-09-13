@@ -236,7 +236,7 @@
     <p>The script prints these — apply them once (Catalog Explorer / a SQL warehouse / admin console):</p>
     <ol class="steps">
       <li><b>Compute:</b> <code>CAN USE</code> on a serverless SQL warehouse; serverless notebooks/jobs enabled.</li>
-      <li><b>Unity Catalog:</b> <code>USE CATALOG</code> + <code>CREATE SCHEMA</code> on your catalog (or let <code>--uc-catalog</code> emit them).</li>
+      <li><b>Unity Catalog:</b> handled by <code>--uc-catalog</code> — it creates the catalog + a per-attendee <code>cm_&lt;user&gt;</code> schema they own + <code>USE CATALOG</code> (creating the catalog needs <code>CREATE CATALOG</code> / metastore admin).</li>
       <li><b>Model Serving:</b> <code>CAN QUERY</code> on the Claude FM endpoint + the entitlement to create serving endpoints.</li>
     </ol>
 
@@ -313,7 +313,7 @@ LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
         Branches, or <code>w.postgres.delete_branch(...)</code>). This frees the branch count and its endpoint,
         and clears everything on it — the <code>cm_&lt;user&gt;</code>, <code>lb_*</code>, and <code>checkpoint%</code> tables.</li>
       <li><b>Sync + SCD1 artifacts (Ex6/Ex7):</b> delete each synced table (removes its sync pipeline) and the
-        Lakeflow/DLT pipeline; optionally drop the <code>cm_bronze_&lt;user&gt;</code> / <code>cm_scd_&lt;user&gt;</code> UC schemas.</li>
+        Lakeflow/DLT pipeline; optionally drop each attendee's <code>cm_&lt;user&gt;</code> UC schema (it holds the feature-store, sync, and SCD1 tables).</li>
       <li><b>Feature-store artifacts:</b> delete each Feature Serving endpoint (<code>w.serving_endpoints.delete</code>)
         and online table (<code>w.feature_store.delete_online_table</code> — never <code>DROP TABLE</code>, which orphans data).</li>
       <li><b>Projects:</b> stop or delete the shared project(s) — Lakebase does <em>not</em> auto-stop, so

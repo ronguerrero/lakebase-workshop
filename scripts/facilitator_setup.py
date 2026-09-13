@@ -17,8 +17,10 @@ What it does (idempotent — safe to re-run):
   4. Create a **branch per attendee** off production, each with a primary READ_WRITE
      endpoint. Prints the attendee → project/branch map + the env var each attendee sets.
 
-Unity Catalog + serving grants (Ex3) can't all be set here — pass --uc-catalog to emit
-the UC GRANTs; the rest is printed for you to apply.
+Pass --uc-catalog to also create the shared **Unity Catalog** catalog + one schema per
+attendee (cm_<user>), owned by each attendee so they can create tables/objects in it, and
+grant everyone USE CATALOG (all via the UC SDK — no SQL warehouse). Model-serving grants
+still can't be set here and are printed for you to apply.
 
 Usage:
   python scripts/facilitator_setup.py -p lakebase \
@@ -214,14 +216,81 @@ def enable_data_plane(conn, groups, users, app_sp):
             make_role(app_sp, "service_principal")
 
 
-def run_uc_grants(w, catalog, groups, users, dry_run):
-    principals = [(g, "group") for g in groups] + [(u, "user") for u in users]
-    if not (catalog and principals):
+def ensure_uc(w, catalog, groups, users, dry_run):
+    """Create the shared UC catalog + one schema per attendee (cm_<user>), and make each
+    attendee the OWNER of their schema so they can create tables/objects in it. Grants
+    USE CATALOG to every attendee (+ groups). All via the UC SDK — no SQL warehouse needed.
+
+    Creating the catalog needs CREATE CATALOG on the metastore (metastore admin); if the
+    facilitator lacks it, that's reported (not fatal) so someone can create the catalog once.
+    """
+    if not catalog:
         return
-    for who, _ in principals:
-        for stmt in (f'GRANT USE CATALOG ON CATALOG `{catalog}` TO `{who}`',
-                     f'GRANT CREATE SCHEMA ON CATALOG `{catalog}` TO `{who}`'):
-            log(f"  {'[dry-run] ' if dry_run else ''}UC (apply via SQL warehouse): {stmt}")
+    from databricks.sdk.service.catalog import PermissionsChange, Privilege, SecurableType
+
+    def grant(sec, full, principal, privs):
+        if dry_run:
+            log(f"  [dry-run] grant {[p.value for p in privs]} on {full} → {principal}")
+            return
+        try:
+            w.grants.update(securable_type=sec.value, full_name=full,
+                            changes=[PermissionsChange(principal=principal, add=list(privs))])
+            log(f"  ✓ grant {[p.value for p in privs]} on {full} → {principal}")
+        except Exception as e:
+            log(f"  ⚠ grant on {full} → {principal}: {str(e)[:110]}")
+
+    log("")
+    log(f"### Unity Catalog: {catalog}")
+    # 1) the shared catalog
+    try:
+        w.catalogs.get(catalog)
+        log(f"✓ catalog exists: {catalog}")
+    except Exception:
+        if dry_run:
+            log(f"[dry-run] would create catalog '{catalog}'")
+        else:
+            try:
+                w.catalogs.create(name=catalog, comment="CIBC CM Lakebase workshop")
+                log(f"✓ catalog created: {catalog}")
+            except Exception as e:
+                log(f"⚠ could not create catalog '{catalog}' — needs CREATE CATALOG / metastore admin: {str(e)[:150]}")
+                log("  Have a metastore admin create it once, then re-run (schemas/grants will proceed).")
+                return
+
+    # 2) USE CATALOG for everyone (attendees + groups)
+    for g in groups:
+        grant(SecurableType.CATALOG, catalog, g, [Privilege.USE_CATALOG])
+    for u in users:
+        grant(SecurableType.CATALOG, catalog, u, [Privilege.USE_CATALOG])
+
+    # 3) one schema per attendee, owned by them (owner can create any object in it)
+    for u in users:
+        sch = f"cm_{_sanitize(u).replace('-', '_')}"
+        full = f"{catalog}.{sch}"
+        try:
+            w.schemas.get(full)
+            log(f"  ✓ schema exists: {full}")
+        except Exception:
+            if dry_run:
+                log(f"  [dry-run] would create schema {full} (owner {u})")
+                continue
+            try:
+                w.schemas.create(name=sch, catalog_name=catalog)
+                log(f"  ✓ schema created: {full}")
+            except Exception as e:
+                log(f"  ⚠ create schema {full}: {str(e)[:120]}")
+                continue
+        if dry_run:
+            continue
+        try:
+            w.schemas.update(full_name=full, owner=u)
+            log(f"    ✓ owner → {u}  (can create tables/objects in {full})")
+        except Exception as e:
+            # fallback if ownership transfer isn't allowed: grant explicit create privileges
+            log(f"    ⚠ set owner failed ({str(e)[:70]}); granting create privileges instead")
+            grant(SecurableType.SCHEMA, full, u,
+                  [Privilege.USE_SCHEMA, Privilege.CREATE_TABLE, Privilege.CREATE_MATERIALIZED_VIEW,
+                   Privilege.CREATE_VOLUME, Privilege.CREATE_FUNCTION, Privilege.MODIFY, Privilege.SELECT])
 
 
 def print_workspace_grants(uc_catalog):
@@ -229,8 +298,12 @@ def print_workspace_grants(uc_catalog):
     log("Manual grants to finish (workspace/UC — not settable from this script)")
     log("-" * 68)
     log("  • CAN USE on a serverless SQL warehouse; serverless notebooks/jobs enabled.")
-    log(f"  • UC: USE CATALOG + CREATE SCHEMA on `{uc_catalog or '<catalog>'}` (Ex3).")
-    log("  • Model Serving: CAN QUERY on a Claude FM endpoint + create-serving-endpoint (Ex3/Ex4).")
+    if uc_catalog:
+        log(f"  • UC: catalog `{uc_catalog}` + a per-attendee schema `cm_<user>` (owned by each attendee)")
+        log("       were created above — nothing to apply by hand.")
+    else:
+        log("  • UC: pass --uc-catalog <name> to auto-create the shared catalog + a per-attendee schema.")
+    log("  • Model Serving: CAN QUERY on a Claude FM endpoint + create-serving-endpoint (feature store / memory).")
 
 
 def chunk(lst, n):
@@ -316,7 +389,7 @@ def main() -> int:
             ensure_branch(w, pid, b, args.dry_run, max_cu=args.branch_max_cu)
             mapping.append((u, pid, b))
 
-    run_uc_grants(w, args.uc_catalog, args.grant_group, attendees, args.dry_run)
+    ensure_uc(w, args.uc_catalog, args.grant_group, attendees, args.dry_run)
     print_workspace_grants(args.uc_catalog)
 
     if mapping:
