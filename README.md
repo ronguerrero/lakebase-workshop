@@ -59,9 +59,11 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
 3. **Finish the workspace/UC grants** the script prints (serverless warehouse `CAN USE`,
    Foundation Model endpoint `CAN QUERY`, ability to create serving endpoints) — see
    `FACILITATOR.md → Permissions`.
-4. **Only if you split across multiple projects:** tell each participant to set
-   `LAKEBASE_SHARED_PROJECT_ID=<their-project>` (from the printed attendee → project/branch map),
-   or the `SHARED_PROJECT_ID` constant in `labs/_setup.py`. With a single project this is unset.
+4. **Tell participants the project id.** Everyone sets `SHARED_PROJECT_ID` in `labs/_setup.py`
+   (or exports `LAKEBASE_SHARED_PROJECT_ID`) to the project you created (e.g. `cibc-cm-workshop`).
+   If you split a large room across `cibc-cm-workshop-1`, `-2`, …, they can still set the **base**
+   id — `_setup` auto-routes each attendee to the split project that holds *their* branch. If the
+   project id is unset or wrong, the exercises **fail fast with a clear message** (no long hang).
 
 See **`docs/facilitator.html`** for the visual setup walkthrough (topology diagram + step-by-step).
 

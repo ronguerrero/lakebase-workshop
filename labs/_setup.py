@@ -30,20 +30,19 @@ def _sanitize(email):
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9-]", "-", name.lower())).strip("-")
 
 
-# ── Shared-project vs per-user mode ─────────────────────────────────────────
-# The facilitator decides how projects are laid out (see scripts/facilitator_setup.py
-# and FACILITATOR.md):
-#   • SHARED  — everyone connects to ONE facilitator-created project, each in their
-#     own per-user schema.  Set SHARED_PROJECT_ID (env var wins, else the constant).
-#   • PER-USER — each participant gets their own project  cm-lab-<username>.
-# The SCHEMA is always per-user (cm_<username>), so both modes stay isolated.
-SHARED_PROJECT_ID = ""   # e.g. "cibc-cm-workshop-shared"  (facilitator sets this)
+# ── The shared Lakebase project (REQUIRED) ──────────────────────────────────
+# All participants connect to ONE facilitator-created Lakebase project and each works
+# on their OWN branch of it (see scripts/facilitator_setup.py and FACILITATOR.md).
+#
+# ►► SET THIS ◄◄ — the facilitator sets SHARED_PROJECT_ID below to the project they
+# created (e.g. "cibc-cm-workshop"); attendees can instead export the env var
+# LAKEBASE_SHARED_PROJECT_ID (which wins over the constant). If neither is set, the
+# helpers below fail fast with a clear message rather than hanging on a project that
+# doesn't exist.
+SHARED_PROJECT_ID = ""   # e.g. "cibc-cm-workshop"  (facilitator sets this)
 
-_shared_id = (os.environ.get("LAKEBASE_SHARED_PROJECT_ID", "").strip()
+PROJECT_ID = (os.environ.get("LAKEBASE_SHARED_PROJECT_ID", "").strip()
               or SHARED_PROJECT_ID).strip()
-SHARED_MODE = bool(_shared_id)
-
-PROJECT_ID = _shared_id if SHARED_MODE else f"cm-lab-{_sanitize(user_email)}"
 
 # Each participant works on their OWN branch of the shared project — a Git-like,
 # copy-on-write, fully-isolated clone with its own compute endpoint. The branch id is
@@ -62,15 +61,47 @@ PG_DATABASE = "databricks_postgres"
 _READY_ENDPOINT_STATES = ("ACTIVE", "IDLE", "DEGRADED")
 
 
+_SETUP_HINT = (
+    "Set SHARED_PROJECT_ID in labs/_setup (the '►► SET THIS ◄◄' line) — or export the "
+    "LAKEBASE_SHARED_PROJECT_ID env var — to the Lakebase project your facilitator created. "
+    "See docs/facilitator.html / FACILITATOR.md."
+)
+
+
+def _validate_target(branch):
+    """Fail FAST (one API call each) if the project or branch can't be resolved, instead of
+    looping for 10 minutes on a project/branch that doesn't exist (the classic 'empty
+    SHARED_PROJECT_ID' hang)."""
+    if not PROJECT_ID:
+        raise RuntimeError("No Lakebase project is configured. " + _SETUP_HINT)
+    try:
+        w.postgres.get_project(name=f"projects/{PROJECT_ID}")
+    except Exception as e:
+        raise RuntimeError(
+            f"Lakebase project '{PROJECT_ID}' was not found ({str(e)[:150]}). " + _SETUP_HINT
+        ) from e
+    try:
+        w.postgres.get_branch(name=f"projects/{PROJECT_ID}/branches/{branch}")
+    except Exception as e:
+        raise RuntimeError(
+            f"Branch '{branch}' does not exist in project '{PROJECT_ID}' or its split siblings "
+            f"({str(e)[:120]}). If the facilitator split attendees across multiple projects "
+            "(--max-branches-per-project), set LAKEBASE_SHARED_PROJECT_ID to YOUR project from "
+            "their attendee→project map. Otherwise ask them to create your branch: "
+            f"python scripts/facilitator_setup.py --project-id {PROJECT_ID} --grant-user {user_email}"
+        ) from e
+
+
 def get_endpoint(branch=None):
     """Return the SDK endpoint object for a branch (waits past provisioning).
 
     Defaults to your own branch (USER_BRANCH). Pass branch="production" to reach the
-    shared main branch explicitly."""
+    shared main branch explicitly. Fails fast with a clear message if the project/branch
+    can't be resolved (rather than hanging on a nonexistent project)."""
     branch = branch or USER_BRANCH
-    # A freshly-created branch endpoint (or one waking from scale-to-zero) can take a few
-    # minutes to first become reachable; wait generously (~10 min) so the first exercise of
-    # the day doesn't trip on a cold branch. Facilitators can pre-warm branches to avoid it.
+    _validate_target(branch)   # fast, clear error on misconfig — no 10-minute hang
+    # The project + branch exist; the endpoint may still be provisioning (a freshly-created
+    # branch, or one waking from scale-to-zero) — wait generously (~10 min) for that only.
     for attempt in range(120):
         try:
             eps = list(w.postgres.list_endpoints(
@@ -84,8 +115,8 @@ def get_endpoint(branch=None):
             pass
         time.sleep(5)
     raise TimeoutError(
-        f"Endpoint for '{PROJECT_ID}/{branch}' is still provisioning after 10 minutes. "
-        "Check the Lakebase UI (Compute → Database Instances / Lakebase)."
+        f"Branch '{PROJECT_ID}/{branch}' exists but its endpoint is still provisioning after "
+        "10 minutes. Check the Lakebase UI (Compute → Database Instances / Lakebase)."
     )
 
 
@@ -182,8 +213,50 @@ def show_view_link(label, url):
         print(f"{label}: {url}")
 
 
-print(f"Mode:     {'SHARED project' if SHARED_MODE else 'per-user project'}")
-print(f"Project:  {PROJECT_ID}")
+# ── Multi-project routing ───────────────────────────────────────────────────
+# If the room is large, the facilitator splits attendees across several projects
+# (`<base>-1`, `<base>-2`, … via --max-branches-per-project). Your branch lives in exactly
+# one of them. So an attendee can point SHARED_PROJECT_ID / LAKEBASE_SHARED_PROJECT_ID at
+# EITHER their specific project OR just the base id, and we route to the project that
+# actually holds YOUR branch.
+def _project_family(pid):
+    root = re.sub(r"-\d+$", "", pid)                       # strip a trailing -N
+    fam = [pid, root] + [f"{root}-{i}" for i in range(1, 21)]
+    seen, out = set(), []
+    for p in fam:
+        if p and p not in seen:
+            seen.add(p); out.append(p)
+    return out
+
+
+def _resolve_effective_project():
+    """Point PROJECT_ID at the split project that actually holds USER_BRANCH (if the
+    configured id doesn't). Best-effort — never breaks `%run ../_setup`."""
+    global PROJECT_ID
+    if not PROJECT_ID:
+        return
+    for cand in _project_family(PROJECT_ID):
+        try:
+            w.postgres.get_branch(name=f"projects/{cand}/branches/{USER_BRANCH}")
+        except Exception:
+            continue
+        if cand != PROJECT_ID:
+            print(f"↪ Your branch '{USER_BRANCH}' is on project '{cand}' (attendees were split "
+                  f"across projects) — using '{cand}' instead of '{PROJECT_ID}'.")
+        PROJECT_ID = cand
+        return
+    # branch not found in the family — leave PROJECT_ID as configured; get_endpoint() explains.
+
+try:
+    _resolve_effective_project()
+except Exception:
+    pass
+
+
+if PROJECT_ID:
+    print(f"Project:  {PROJECT_ID}")
+else:
+    print("Project:  ⚠ NOT SET — " + _SETUP_HINT)
 print(f"Branch:   {USER_BRANCH}   (your isolated branch — all exercises use it)")
 print(f"Schema:   {PG_SCHEMA}")
 print(f"Database: {PG_DATABASE}")

@@ -75,10 +75,12 @@ apply. Simplest: put the attendees in one workspace group and grant that group.
       --grant-user a@cibc.com --grant-user b@cibc.com ... --uc-catalog main
   ```
 - **Too many attendees for one project's branch limit?** Add `--max-branches-per-project N` — the
-  script creates `cibc-cm-workshop-1`, `-2`, … and splits attendees across them. Each attendee then
-  sets `LAKEBASE_SHARED_PROJECT_ID` to *their* project (from the printed map); their branch is
-  unchanged. Isolation is by branch, but Lakebase ACL is project-level, so it's isolation by
-  convention (fine for a workshop). Full walkthrough: `docs/facilitator.html`.
+  script creates `cibc-cm-workshop-1`, `-2`, … and splits attendees across them. Attendees can set
+  `LAKEBASE_SHARED_PROJECT_ID` (or `SHARED_PROJECT_ID`) to the **base** id — `labs/_setup.py`
+  auto-routes each one to the split project that holds *their* branch (setting the exact project from
+  the printed map also works). Their branch is unchanged. Isolation is by branch, but Lakebase ACL is
+  project-level, so it's isolation by convention (fine for a workshop). Full walkthrough:
+  `docs/facilitator.html`.
 
 ---
 
