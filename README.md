@@ -61,11 +61,14 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
    endpoint is a **system foundation model** (no `CAN QUERY` grant needed), and there's no
    "create endpoint/pipeline" entitlement to grant — attendees create those with their workspace
    access. See `FACILITATOR.md → Permissions`.
-4. **Tell participants the project id.** Everyone sets `SHARED_PROJECT_ID` in `labs/_setup.py`
-   (or exports `LAKEBASE_SHARED_PROJECT_ID`) to the project you created (e.g. `cibc-cm-workshop`).
-   If you split a large room across `cibc-cm-workshop-1`, `-2`, …, they can still set the **base**
-   id — `_setup` auto-routes each attendee to the split project that holds *their* branch. If the
-   project id is unset or wrong, the exercises **fail fast with a clear message** (no long hang).
+4. **Tell participants the project id + catalog.** Everyone sets `SHARED_PROJECT_ID` and
+   `SHARED_CATALOG` in `labs/_setup.py` to the project and Unity Catalog catalog you created (e.g.
+   `cibc-cm-workshop` / `main`) — set once, every exercise inherits them (they also appear as the
+   `shared_project_id` / `uc_catalog` widgets on each notebook). Their `cm_<user>` schema is derived
+   automatically. If you split a large room across `cibc-cm-workshop-1`, `-2`, …, they can still set
+   the **base** project id — `_setup` auto-routes each attendee to the split project that holds
+   *their* branch. If the project id is unset or wrong, the exercises **fail fast with a clear
+   message** (no long hang).
    The notebook prints the attendee → project map at the end.
 
 See **`docs/facilitator.html`** for the visual setup walkthrough (topology diagram + step-by-step).

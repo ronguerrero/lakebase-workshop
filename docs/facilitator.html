@@ -246,13 +246,17 @@ dry_run                    = true   <span class="c"># preview first, then set fa
       <li><b>Serverless DLT enabled.</b> Attendees create the Ex7 pipeline and the Ex4 Feature Serving endpoint with their <b>workspace access</b> — there's <b>no distinct "create pipeline"/"create endpoint" entitlement</b> to grant.</li>
     </ol>
 
-    <h3>Point attendees at the project</h3>
-    <p>Attendees set <b>one</b> value — the <code>SHARED_PROJECT_ID</code> constant in
-      <a href="../labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a> (or export
-      <code>LAKEBASE_SHARED_PROJECT_ID</code>) — to the project id you created. Their branch is derived
-      from their username automatically:</p>
+    <h3>Point attendees at the project + catalog</h3>
+    <p>Attendees set <b>two</b> values — the <code>SHARED_PROJECT_ID</code> and
+      <code>SHARED_CATALOG</code> constants in
+      <a href="../labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a> — to the
+      project id and Unity Catalog catalog you created. Set once, every exercise inherits them (they
+      also surface as the <code>shared_project_id</code> / <code>uc_catalog</code> widgets on each
+      notebook). Their branch <em>and</em> their <code>cm_&lt;user&gt;</code> schema are derived from
+      their username automatically — nothing else to set:</p>
     <pre><code><span class="c"># each attendee, once, in their clone of labs/_setup.py:</span>
-SHARED_PROJECT_ID = "cibc-cm-workshop"</code></pre>
+SHARED_PROJECT_ID = "cibc-cm-workshop"
+SHARED_CATALOG    = "main"   <span class="c"># the catalog you passed to the setup notebook</span></code></pre>
     <div class="note"><b>Fail-fast &amp; auto-routing:</b> if the project id is unset or wrong, the
       exercises stop immediately with a clear message (no 10-minute hang on a nonexistent project).
       And if you split a large room across projects (below), attendees can still set the <b>base</b> id
