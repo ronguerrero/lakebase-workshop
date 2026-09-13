@@ -55,9 +55,11 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
    **`max_branches_per_project`** and the notebook splits them across `cibc-cm-workshop-1`,
    `-2`, …. **`branch_max_cu`** (default 4) gives each branch an autoscaling envelope
    (min 1 → max 4 CU) so the Exercise 1 load demo shows scaling.
-3. **Finish the workspace/UC grants** the notebook prints (serverless warehouse `CAN USE`,
-   Foundation Model endpoint `CAN QUERY`, ability to create serving endpoints) — see
-   `FACILITATOR.md → Permissions`.
+3. **Confirm the workspace toggles** the notebook reminds you about — the per-user grants
+   (project, UC, and the FM endpoint `CAN QUERY` via the `fm_endpoint` widget) are set for you.
+   What's left is workspace-level: serverless notebooks/jobs, Model Serving, and serverless DLT
+   enabled. There's **no SQL warehouse requirement** and no "create endpoint/pipeline" entitlement
+   to grant — attendees create those with their workspace access. See `FACILITATOR.md → Permissions`.
 4. **Tell participants the project id.** Everyone sets `SHARED_PROJECT_ID` in `labs/_setup.py`
    (or exports `LAKEBASE_SHARED_PROJECT_ID`) to the project you created (e.g. `cibc-cm-workshop`).
    If you split a large room across `cibc-cm-workshop-1`, `-2`, …, they can still set the **base**
@@ -80,11 +82,11 @@ See **`docs/facilitator.html`** for the visual setup walkthrough (topology diagr
 
 ## Prerequisites (short version)
 
-Workspace needs: **Unity Catalog** + a writable catalog; a **serverless SQL warehouse** +
-serverless notebooks; **Lakebase** (managed Postgres, autoscaling); **Foundation Model APIs** with a
-served pay-per-token Claude endpoint; the ability to **create Model Serving endpoints** (feature-store
-Feature Serving) and **serverless DLT pipelines** (SCD1 exercise). Full checklist and versions in
-`FACILITATOR.md`.
+Workspace needs: **Unity Catalog** + a writable catalog; **serverless notebooks/jobs** (the exercises
+run on serverless notebook compute — **no SQL warehouse required**); **Lakebase** (managed Postgres,
+autoscaling); **Foundation Model APIs** with a served pay-per-token Claude endpoint; **Model Serving**
+and **serverless DLT** enabled (attendees create the Feature Serving endpoint and SCD1 pipeline with
+their workspace access — no special entitlement). Full checklist and versions in `FACILITATOR.md`.
 
 ## Layout
 

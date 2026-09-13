@@ -11,6 +11,10 @@
 # MAGIC 3. Forks a **branch per attendee** (`br · <username>`, own endpoint, 1 → `branch_max_cu` CU).
 # MAGIC 4. (with a `uc_catalog`) creates the shared **Unity Catalog** catalog + a `cm_<user>` schema
 # MAGIC    per attendee, **owned by that attendee**, and grants everyone `USE CATALOG`.
+# MAGIC 5. (with an `fm_endpoint`) grants attendees **`CAN QUERY`** on the Claude Foundation Model
+# MAGIC    endpoint the feature-store chatbot + memory agent call. (Optionally `CAN USE` on a SQL
+# MAGIC    warehouse — the workshop doesn't need one; the exercises run on serverless notebook
+# MAGIC    compute + Lakebase's built-in editor.)
 # MAGIC
 # MAGIC **Model:** all attendees share ONE Lakebase project and each gets their own **branch** (a
 # MAGIC Git-like, copy-on-write, fully-isolated clone with its own compute endpoint). More attendees
@@ -36,12 +40,14 @@ dbutils.library.restartPython()
 dbutils.widgets.text("project_id", "cibc-cm-workshop", "1 · Lakebase project id (base)")
 dbutils.widgets.text("grant_users", "", "2 · Attendee emails (comma/space separated)")
 dbutils.widgets.text("uc_catalog", "main", "3 · Unity Catalog catalog (blank = skip UC)")
-dbutils.widgets.text("branch_max_cu", "4", "4 · Max CU per attendee branch")
-dbutils.widgets.text("max_branches_per_project", "18", "5 · Max branches per project (split past this)")
-dbutils.widgets.text("grant_groups", "", "6 · Groups to grant (optional)")
-dbutils.widgets.text("pg_version", "17", "7 · PostgreSQL version")
-dbutils.widgets.text("app_name", "", "8 · Lab app name (optional)")
-dbutils.widgets.dropdown("dry_run", "true", ["true", "false"], "9 · Dry run (preview only)")
+dbutils.widgets.text("fm_endpoint", "databricks-claude-sonnet-4-5", "4 · Claude FM endpoint (blank = skip grant)")
+dbutils.widgets.text("warehouse_id", "", "5 · SQL warehouse id (optional — not required)")
+dbutils.widgets.text("branch_max_cu", "4", "6 · Max CU per attendee branch")
+dbutils.widgets.text("max_branches_per_project", "18", "7 · Max branches per project (split past this)")
+dbutils.widgets.text("grant_groups", "", "8 · Groups to grant (optional)")
+dbutils.widgets.text("pg_version", "17", "9 · PostgreSQL version")
+dbutils.widgets.text("app_name", "", "10 · Lab app name (optional)")
+dbutils.widgets.dropdown("dry_run", "true", ["true", "false"], "11 · Dry run (preview only)")
 
 # COMMAND ----------
 
@@ -308,17 +314,73 @@ def ensure_uc(w, catalog, groups, users, dry_run):
                    Privilege.CREATE_VOLUME, Privilege.CREATE_FUNCTION, Privilege.MODIFY, Privilege.SELECT])
 
 
-def print_workspace_grants(uc_catalog):
+def _grant_object(w, obj_type, obj_id, level, groups, users, dry_run, label):
+    """Additively grant `level` (a PermissionLevel) on a workspace object — a serving endpoint,
+    a SQL warehouse, … — to attendees + groups via the permissions API. Idempotent: update
+    MERGES the given ACLs onto whatever's already there (it does not replace)."""
+    from databricks.sdk.service.iam import AccessControlRequest
+    entries = [(g, "group", AccessControlRequest(group_name=g, permission_level=level)) for g in groups]
+    entries += [(u, "user", AccessControlRequest(user_name=u, permission_level=level)) for u in users]
+    if not entries:
+        return
+    if dry_run:
+        for who, kind, _ in entries:
+            log(f"  [dry-run] {label}: {level.value} → {who} ({kind})")
+        return
+    try:
+        w.permissions.update(request_object_type=obj_type, request_object_id=str(obj_id),
+                             access_control_list=[e[2] for e in entries])
+        for who, kind, _ in entries:
+            log(f"  ✓ {label}: {who} ({kind})")
+    except Exception as e:
+        log(f"  ⚠ batch {label} failed ({str(e)[:90]}); one at a time ...")
+        for who, kind, req in entries:
+            try:
+                w.permissions.update(request_object_type=obj_type, request_object_id=str(obj_id),
+                                     access_control_list=[req])
+                log(f"  ✓ {label}: {who} ({kind})")
+            except Exception as e2:
+                log(f"  ⚠ {label} {who} — set in the UI: {str(e2)[:80]}")
+
+
+def ensure_workspace_grants(w, fm_endpoint, warehouse_id, groups, users, dry_run):
+    """Automate the workspace-object grants the exercises need. Only one is actually required —
+    CAN QUERY on the Claude FM endpoint (feature-store chatbot + memory agent). A SQL warehouse
+    is optional (the workshop uses serverless notebook compute + Lakebase's built-in editor), so
+    it's granted only if you supply a warehouse_id. Everything else that gates the workshop is a
+    workspace-level admin toggle or plain workspace access — not a per-user grant (see below)."""
+    from databricks.sdk.service.iam import PermissionLevel
+
     log("")
-    log("Manual grants to finish (workspace/UC — not settable from this notebook)")
-    log("-" * 68)
-    log("  • CAN USE on a serverless SQL warehouse; serverless notebooks/jobs enabled.")
-    if uc_catalog:
-        log(f"  • UC: catalog `{uc_catalog}` + a per-attendee schema `cm_<user>` (owned by each attendee)")
-        log("       were created above — nothing to apply by hand.")
+    log("### Workspace object grants")
+    # Foundation Model endpoint — CAN QUERY (feature-store chatbot + memory agent)
+    if fm_endpoint:
+        try:
+            ep = w.serving_endpoints.get(name=fm_endpoint)
+            _grant_object(w, "serving-endpoints", ep.id, PermissionLevel.CAN_QUERY,
+                          groups, users, dry_run, f"FM endpoint CAN_QUERY ({fm_endpoint})")
+        except Exception as e:
+            log(f"  ⚠ FM endpoint '{fm_endpoint}' not found / not grantable ({str(e)[:90]})")
+            log("    → check the name (region-specific), or leave blank if all users can already query it.")
     else:
-        log("  • UC: set the uc_catalog widget to auto-create the shared catalog + a per-attendee schema.")
-    log("  • Model Serving: CAN QUERY on a Claude FM endpoint + create-serving-endpoint (feature store / memory).")
+        log("  • FM endpoint: set the fm_endpoint widget to auto-grant CAN QUERY (feature store + memory).")
+
+    # Optional SQL warehouse — CAN USE (NOT required by the workshop; only if you choose to use one)
+    if warehouse_id:
+        _grant_object(w, "sql/warehouses", warehouse_id, PermissionLevel.CAN_USE,
+                      groups, users, dry_run, f"warehouse CAN_USE ({warehouse_id})")
+
+    log("")
+    log("Workspace settings to confirm (admin toggles / plain access — NOT per-user grants)")
+    log("-" * 68)
+    log("  • Serverless notebooks/jobs enabled — the exercises run on serverless notebook compute.")
+    log("  • Foundation Model APIs + Model Serving enabled in this workspace/region.")
+    log("  • Attendees are workspace users (workspace-access). That access — plus the toggles above —")
+    log("    is what lets them create the serverless DLT pipeline (Ex7) and Feature Serving endpoint")
+    log("    (Ex4); there is NO separate 'create pipeline'/'create endpoint' entitlement to grant.")
+    if not warehouse_id:
+        log("  • A SQL warehouse is NOT required — leave warehouse_id blank. Supply one only if you")
+        log("    prefer the Databricks SQL Editor over Lakebase's built-in editor.")
 
 
 def chunk(lst, n):
@@ -328,7 +390,7 @@ def chunk(lst, n):
 # ── orchestration ─────────────────────────────────────────────────────────────
 def run(*, project_id="cibc-cm-workshop", pg_version="17", grant_users=None,
         grant_groups=None, max_branches_per_project=18, branch_max_cu=4, app_name=None,
-        uc_catalog=None, dry_run=False):
+        uc_catalog=None, fm_endpoint=None, warehouse_id=None, dry_run=False):
     """Run the full facilitator setup with the notebook's ambient identity (WorkspaceClient())."""
     from databricks.sdk import WorkspaceClient
     grant_users = list(grant_users or [])
@@ -392,7 +454,7 @@ def run(*, project_id="cibc-cm-workshop", pg_version="17", grant_users=None,
             mapping.append((u, pid, b))
 
     ensure_uc(w, uc_catalog, grant_groups, attendees, dry_run)
-    print_workspace_grants(uc_catalog)
+    ensure_workspace_grants(w, fm_endpoint, warehouse_id, grant_groups, attendees, dry_run)
 
     if mapping:
         log("")
@@ -440,6 +502,8 @@ _rc = run(
     branch_max_cu=int(g("branch_max_cu") or "4"),
     app_name=(g("app_name").strip() or None),
     uc_catalog=(g("uc_catalog").strip() or None),
+    fm_endpoint=(g("fm_endpoint").strip() or None),
+    warehouse_id=(g("warehouse_id").strip() or None),
     dry_run=(g("dry_run") == "true"),
 )
 print("\n(return code:", _rc, "— 0 = success)")

@@ -193,12 +193,12 @@
     <table>
       <tr><th>Capability</th><th>For</th><th>Note</th></tr>
       <tr><td>Unity Catalog + a writable catalog</td><td>feature-store table + sync/SCD1 Delta tables</td><td>Placeholder <code>main</code>; set yours in the <code>uc_catalog</code> widget.</td></tr>
-      <tr><td>Serverless SQL warehouse + serverless notebooks</td><td>all exercises</td><td>No cluster needed.</td></tr>
+      <tr><td>Serverless notebooks/jobs</td><td>all exercises (serverless notebook compute)</td><td>No cluster — and <b>no SQL warehouse</b> (the exercises use <code>spark.sql</code> + Lakebase's built-in editor). A serverless SQL warehouse is <em>optional</em>, only if you prefer the Databricks SQL Editor.</td></tr>
       <tr><td>Lakebase (autoscaling projects)</td><td>the whole workshop</td><td>You create the project(s) + branches below. Mind the per-project branch limit.</td></tr>
       <tr><td>Lakebase synced tables (reverse ETL)</td><td>Ex6 Delta → <code>lb_*</code></td><td>Evolving/preview — confirm the API + Preview status in the workspace.</td></tr>
-      <tr><td>Create serverless Lakeflow/DLT pipelines</td><td>Ex7 SCD1 pipeline</td><td>Attendees need this entitlement.</td></tr>
-      <tr><td>Served pay-per-token Claude endpoint</td><td>feature-store chatbot + memory agent</td><td>e.g. <code>databricks-claude-sonnet-4-5</code>; swap in the notebooks if yours differs.</td></tr>
-      <tr><td>Create Model Serving endpoints</td><td>feature-store Feature Serving</td><td>Attendees need this entitlement.</td></tr>
+      <tr><td>Serverless Lakeflow/DLT enabled</td><td>Ex7 SCD1 pipeline</td><td>Attendees create it with their workspace access — <b>no separate entitlement</b> to grant.</td></tr>
+      <tr><td>Served pay-per-token Claude endpoint</td><td>feature-store chatbot + memory agent</td><td>e.g. <code>databricks-claude-sonnet-4-5</code>; the notebook grants attendees <code>CAN QUERY</code> (<code>fm_endpoint</code> widget). Swap the name in the notebooks if yours differs.</td></tr>
+      <tr><td>Model Serving enabled</td><td>feature-store Feature Serving</td><td>Attendees create the endpoint with their workspace access — <b>no separate entitlement</b> to grant.</td></tr>
     </table>
     <p>You need <b>workspace admin</b> — no account admin required. Everything runs <b>inside
       Databricks</b>: import this repo (Repos → Add Repo from Git) and open the setup notebook — no
@@ -215,14 +215,17 @@
 grant_users                = sofia.martins@cibc.com, david.chen@cibc.com, priya.nair@cibc.com
 project_id                 = cibc-cm-workshop
 uc_catalog                 = main
+fm_endpoint                = databricks-claude-sonnet-4-5   <span class="c"># auto-grants CAN QUERY (blank = skip)</span>
 branch_max_cu              = 4
-dry_run                    = true   <span class="c"># preview first, then set false and re-run</span></code></pre>
+dry_run                    = true   <span class="c"># preview first, then set false and re-run</span>
+<span class="c"># warehouse_id           = &lt;id&gt;   # OPTIONAL — the workshop needs no warehouse</span></code></pre>
     <p>What it does — all idempotent, safe to re-run:</p>
     <ol class="steps">
       <li>Creates the project <code>cibc-cm-workshop</code> (if missing) and waits for its production endpoint.</li>
       <li>Grants each attendee <code>CAN_USE</code> on the project and creates their Postgres OAuth login role (installs the <code>databricks_auth</code> extension).</li>
       <li>Forks a branch per attendee off production (<code>br · &lt;username&gt;</code>, <code>no_expiry</code>) with a primary READ/WRITE endpoint set to an autoscaling range of <b>1 → 4 CU</b> (from <code>branch_max_cu</code>) so the Exercise 1 load demo can show compute scaling.</li>
-      <li>Prints the attendee → project/branch map, the UC grants to apply, and the one value each attendee sets.</li>
+      <li>Creates the UC catalog + a per-attendee <code>cm_&lt;user&gt;</code> schema they own + <code>USE CATALOG</code> (<code>uc_catalog</code> widget), and grants attendees <code>CAN QUERY</code> on the Claude FM endpoint (<code>fm_endpoint</code> widget).</li>
+      <li>Prints the attendee → project/branch map, the workspace toggles to confirm, and the one value each attendee sets.</li>
     </ol>
     <div class="note"><b>Why <code>branch_max_cu = 4</code>:</b> Exercise 1's autoscale/load demo only shows
       a curve if the branch endpoint can scale (<code>max_cu &gt; min_cu</code>). Without it, branches sit at
@@ -234,12 +237,14 @@ dry_run                    = true   <span class="c"># preview first, then set fa
     <div class="note check"><b>✓ Check</b> — the notebook prints one <code>br · &lt;username&gt;</code> per
       attendee with "branch created" + "endpoint"; the map lists every attendee against the project.</div>
 
-    <h3>Then finish the grants it can't set</h3>
-    <p>The notebook prints these — apply them once (Catalog Explorer / a SQL warehouse / admin console):</p>
+    <h3>Then confirm the workspace toggles (not per-user grants)</h3>
+    <p>The notebook sets <b>every per-user grant</b> — project, UC catalog/schema, and the FM endpoint
+      <code>CAN QUERY</code>. What's left isn't a grant at all; it's workspace-level enablement the
+      notebook reminds you to confirm:</p>
     <ol class="steps">
-      <li><b>Compute:</b> <code>CAN USE</code> on a serverless SQL warehouse; serverless notebooks/jobs enabled.</li>
-      <li><b>Unity Catalog:</b> handled by the <code>uc_catalog</code> widget — it creates the catalog + a per-attendee <code>cm_&lt;user&gt;</code> schema they own + <code>USE CATALOG</code> (creating the catalog needs <code>CREATE CATALOG</code> / metastore admin).</li>
-      <li><b>Model Serving:</b> <code>CAN QUERY</code> on the Claude FM endpoint + the entitlement to create serving endpoints.</li>
+      <li><b>Serverless notebooks/jobs enabled.</b> The exercises run on serverless notebook compute — <b>no SQL warehouse needed</b>.</li>
+      <li><b>Model Serving + Foundation Model APIs enabled</b> in the workspace/region.</li>
+      <li><b>Serverless DLT enabled.</b> Attendees create the Ex7 pipeline and the Ex4 Feature Serving endpoint with their <b>workspace access</b> — there's <b>no distinct "create pipeline"/"create endpoint" entitlement</b> to grant.</li>
     </ol>
 
     <h3>Point attendees at the project</h3>

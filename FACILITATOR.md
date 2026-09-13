@@ -20,15 +20,15 @@ group. The reference solution notebook in each folder is the validated version t
 | Capability | Used for | Status / how to enable |
 |---|---|---|
 | **Unity Catalog** + a writable catalog | feature-store offline table (`<catalog>.cm_<user>`) + the sync/SCD1 exercises' Delta tables | Required. Placeholder `main`. |
-| **Serverless SQL warehouse** + serverless notebooks/jobs | all exercises run on serverless | Required — no cluster needed. Note the warehouse id. |
+| **Serverless notebooks/jobs** | all exercises run on serverless notebook compute | Required — no cluster, **and no SQL warehouse** (the exercises use `spark.sql` on notebook compute + Lakebase's built-in editor). A serverless SQL warehouse is *optional* — only if you prefer the Databricks SQL Editor. |
 | **Lakebase** (managed Postgres, autoscaling projects) | the whole workshop | Required. The facilitator creates one shared project + **a branch per attendee** via the `scripts/facilitator_setup_notebook` notebook. **Mind the per-project branch limit** — past it, the notebook splits attendees across extra projects (`max_branches_per_project` widget). |
-| **`databricks_auth` Postgres extension** | OAuth login roles for participants | Installed by the setup script (`CREATE EXTENSION databricks_auth`). |
-| **Foundation Model APIs** — a served pay-per-token Claude endpoint (e.g. `databricks-claude-sonnet-4-5`) | feature-store chatbot + memory agent LLM | Must be **served in your region** — check `system.ai` / serving endpoints directly; docs lag. Swap the endpoint name in the notebooks if yours differs. |
+| **`databricks_auth` Postgres extension** | OAuth login roles for participants | Installed by the setup notebook (`CREATE EXTENSION databricks_auth`). |
+| **Foundation Model APIs** — a served pay-per-token Claude endpoint (e.g. `databricks-claude-sonnet-4-5`) | feature-store chatbot + memory agent LLM | Must be **served in your region** — check `system.ai` / serving endpoints directly; docs lag. The setup notebook grants attendees `CAN QUERY` on it (`fm_endpoint` widget); swap the name in the notebooks if yours differs. |
 | **Feature Engineering / Online Feature Store** | Ex4 (feature store) publish to Lakebase + Feature Serving | GA. `databricks-feature-engineering>=0.13.0`. |
-| **Model Serving — create endpoints** | Ex4 Feature Serving endpoint | Participants need permission to create serving endpoints. |
+| **Model Serving — enabled in the workspace** | Ex4 Feature Serving endpoint | Attendees create the endpoint using their workspace access — there is **no separate "create serving endpoint" entitlement** to grant; just have Model Serving enabled in the workspace/region. |
 | **Change Data Feed** | Ex6 (Delta→Lakebase sync) + Ex4 offline feature table (publish prerequisite) | GA (the notebooks set it). |
 | **Lakebase synced tables** (reverse ETL) | Ex6 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
-| **Lakeflow / DLT (serverless)** — writes into the attendee's `cm_<user>` schema | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Participants need permission to create serverless DLT pipelines. |
+| **Lakeflow / DLT (serverless)** — writes into the attendee's `cm_<user>` schema | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Attendees create the pipeline using their workspace access — there is **no separate "create pipeline" entitlement** to grant; just have serverless DLT enabled. |
 | **Lakebase REST data API** | Ex3 REST-vs-JDBC access | Preview/evolving — confirm the base path + query convention in App Connect / Data API. The notebook parameterizes `REST_BASE` and degrades gracefully. |
 
 ### Versions / packages (pinned in the notebooks)
@@ -43,28 +43,32 @@ group. The reference solution notebook in each folder is the validated version t
 
 ## Permissions to grant participants (facilitator, before the room)
 
-Most of this is done for you by the **`scripts/facilitator_setup_notebook`** notebook; the rest it
-prints for you to apply. Simplest: put the attendees in one workspace group and grant that group.
+The **`scripts/facilitator_setup_notebook`** notebook sets every per-user grant the workshop needs.
+Simplest: put the attendees in one workspace group and grant that group.
 
-**Set by the setup script:**
+**Set by the setup notebook:**
 - **Lakebase project** — `CAN_USE` (control plane) for each attendee, plus an OAuth login role
   (data plane) on production.
 - **A branch per attendee** — forked off production (`br · <username>`, `no_expiry`) with its own
   primary READ/WRITE endpoint. The exercises connect to the attendee's own branch automatically.
+- (with the `uc_catalog` widget) **the shared UC catalog** + one schema per attendee (`cm_<user>`)
+  **owned by that attendee** (so they can create tables/objects in it), and `USE CATALOG` for
+  everyone. All via the UC SDK — no SQL warehouse. (Creating the catalog needs `CREATE CATALOG` /
+  metastore admin; if you lack it, the notebook reports it and a metastore admin creates the catalog
+  once, then you re-run.)
+- (with the `fm_endpoint` widget) **`CAN QUERY` on the Claude FM endpoint** the feature-store chatbot
+  + memory agent call.
 - (with the `app_name` widget) the Lab app's service principal → project `CAN_MANAGE` + a Postgres role.
-- (with the `uc_catalog` widget) **creates the shared UC catalog** + one schema per attendee (`cm_<user>`)
-  **owned by that attendee** (so they can create tables/objects in it), and grants everyone
-  `USE CATALOG`. All via the UC SDK — no SQL warehouse.
+- (with the optional `warehouse_id` widget) `CAN USE` on a SQL warehouse — only if you choose to use
+  one (the workshop doesn't need it).
 
-**You still apply manually (the notebook prints these):**
-- **Compute:** `CAN USE` on the serverless SQL warehouse; serverless notebooks/jobs enabled.
-- **Unity Catalog:** handled by the `uc_catalog` widget above (catalog + a per-attendee `cm_<user>`
-  schema they own + `USE CATALOG`). Only do this by hand if you leave that widget blank — and note
-  creating the catalog needs `CREATE CATALOG` / metastore admin.
-- **Model Serving / Foundation Models:** `CAN QUERY` on the pay-per-token FM endpoint (feature-store
-  chatbot + memory agent), and the entitlement to **create serving endpoints** (feature-store Feature
-  Serving endpoint).
-- **Lakeflow / DLT:** the entitlement to **create serverless DLT pipelines** (the SCD1 exercise).
+**Not per-user grants — confirm these workspace settings instead (the notebook reminds you):**
+- **Serverless notebooks/jobs enabled.** The exercises run on serverless notebook compute — **no SQL
+  warehouse required.**
+- **Model Serving + Foundation Model APIs enabled** in the workspace/region.
+- **Serverless DLT enabled.** Attendees create the Ex7 pipeline and the Ex4 Feature Serving endpoint
+  using their **workspace access** — there is **no distinct "create pipeline" / "create serving
+  endpoint" entitlement** to grant. Being a workspace user (plus the toggles above) is what enables it.
 
 > **No account admin needed** — a workspace admin can run the whole workshop. Projects are created
 > and granted per-workspace; the CM data is synthetic and self-generated.
