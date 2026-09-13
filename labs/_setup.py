@@ -32,7 +32,7 @@ def _sanitize(email):
 
 # ── The shared Lakebase project ─────────────────────────────────────────────
 # All participants connect to ONE facilitator-created Lakebase project and each works
-# on their OWN branch of it (see scripts/facilitator_setup.py and FACILITATOR.md).
+# on their OWN branch of it (see scripts/facilitator_setup_notebook and FACILITATOR.md).
 #
 # ►► ATTENDEE: SET THIS ONE LINE ◄◄
 # Set SHARED_PROJECT_ID to your facilitator's project id (e.g. "cibc-cm-workshop"). Edit it
@@ -89,9 +89,9 @@ def _validate_target(branch):
         raise RuntimeError(
             f"Branch '{branch}' does not exist in project '{PROJECT_ID}' or its split siblings "
             f"({str(e)[:120]}). If the facilitator split attendees across multiple projects "
-            "(--max-branches-per-project), set LAKEBASE_SHARED_PROJECT_ID to YOUR project from "
-            "their attendee→project map. Otherwise ask them to create your branch: "
-            f"python scripts/facilitator_setup.py --project-id {PROJECT_ID} --grant-user {user_email}"
+            "(max_branches_per_project), set SHARED_PROJECT_ID to YOUR project from their "
+            "attendee→project map. Otherwise ask them to re-run scripts/facilitator_setup_notebook "
+            f"with your email ({user_email}) in the grant_users widget to create your branch."
         ) from e
 
 
@@ -218,7 +218,7 @@ def show_view_link(label, url):
 
 # ── Multi-project routing ───────────────────────────────────────────────────
 # If the room is large, the facilitator splits attendees across several projects
-# (`<base>-1`, `<base>-2`, … via --max-branches-per-project). Your branch lives in exactly
+# (`<base>-1`, `<base>-2`, … via the max_branches_per_project widget). Your branch lives in exactly
 # one of them. So an attendee can point SHARED_PROJECT_ID / LAKEBASE_SHARED_PROJECT_ID at
 # EITHER their specific project OR just the base id, and we route to the project that
 # actually holds YOUR branch.

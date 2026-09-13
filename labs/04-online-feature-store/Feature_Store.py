@@ -15,7 +15,7 @@
 # MAGIC    `Coverage_Desk_Chatbot.py` uses to look up features.
 # MAGIC
 # MAGIC **Requirements:** run on **serverless** or DBR ML; your Lakebase project must exist
-# MAGIC (the facilitator created it — see `scripts/facilitator_setup.py`).
+# MAGIC (the facilitator created it — see `scripts/facilitator_setup_notebook`).
 # MAGIC
 # MAGIC > This is the **reference solution** — what the Genie Code prompt in `README.md`
 # MAGIC > should produce. Author your version by pasting that prompt into Genie Code.

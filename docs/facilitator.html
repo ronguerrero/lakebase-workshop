@@ -107,11 +107,12 @@
     <h1>Prep the room before the desk opens</h1>
     <p class="lede">Everything you run before attendees arrive: stand up one shared Lakebase project,
       give every attendee their own isolated <b>branch</b>, grant access, and (if the room is large)
-      split across extra projects. One script does the heavy lifting.</p>
+      split across extra projects. One notebook does the heavy lifting — run entirely in Databricks,
+      no CLI.</p>
     <div class="meta">
       <span>Setup time · <b>~15 min</b> + branch provisioning</span>
       <span>You need · <b>workspace admin</b></span>
-      <span>Script · <b>scripts/facilitator_setup.py</b></span>
+      <span>Notebook · <b>scripts/facilitator_setup_notebook</b></span>
     </div>
   </section>
 
@@ -191,7 +192,7 @@
     <div class="sh"><span class="snum">1</span><h2>Prerequisites</h2></div>
     <table>
       <tr><th>Capability</th><th>For</th><th>Note</th></tr>
-      <tr><td>Unity Catalog + a writable catalog</td><td>feature-store table + sync/SCD1 Delta tables</td><td>Placeholder <code>main</code>; pass yours with <code>--uc-catalog</code>.</td></tr>
+      <tr><td>Unity Catalog + a writable catalog</td><td>feature-store table + sync/SCD1 Delta tables</td><td>Placeholder <code>main</code>; set yours in the <code>uc_catalog</code> widget.</td></tr>
       <tr><td>Serverless SQL warehouse + serverless notebooks</td><td>all exercises</td><td>No cluster needed.</td></tr>
       <tr><td>Lakebase (autoscaling projects)</td><td>the whole workshop</td><td>You create the project(s) + branches below. Mind the per-project branch limit.</td></tr>
       <tr><td>Lakebase synced tables (reverse ETL)</td><td>Ex6 Delta → <code>lb_*</code></td><td>Evolving/preview — confirm the API + Preview status in the workspace.</td></tr>
@@ -199,53 +200,55 @@
       <tr><td>Served pay-per-token Claude endpoint</td><td>feature-store chatbot + memory agent</td><td>e.g. <code>databricks-claude-sonnet-4-5</code>; swap in the notebooks if yours differs.</td></tr>
       <tr><td>Create Model Serving endpoints</td><td>feature-store Feature Serving</td><td>Attendees need this entitlement.</td></tr>
     </table>
-    <p>You need <b>workspace admin</b> — no account admin required. Authenticate the CLI first:</p>
-    <pre><code>databricks auth login https://&lt;your-workspace-host&gt; --profile lakebase</code></pre>
+    <p>You need <b>workspace admin</b> — no account admin required. Everything runs <b>inside
+      Databricks</b>: import this repo (Repos → Add Repo from Git) and open the setup notebook — no
+      CLI, no laptop auth.</p>
   </section>
 
   <!-- SETUP -->
   <section class="step" id="setup">
-    <div class="sh"><span class="snum">2</span><h2>Run the setup script</h2></div>
-    <p>One command creates the shared project, grants your attendees, and forks a branch (with its own
-      endpoint) for each. Pass one <code>--grant-user</code> per attendee:</p>
-    <pre><code>python scripts/facilitator_setup.py -p lakebase \
-    --project-id cibc-cm-workshop \
-    --grant-user sofia.martins@cibc.com \
-    --grant-user david.chen@cibc.com \
-    --grant-user priya.nair@cibc.com \
-    --branch-max-cu 4 \
-    --uc-catalog main</code></pre>
+    <div class="sh"><span class="snum">2</span><h2>Run the setup notebook</h2></div>
+    <p>Open <b><code>scripts/facilitator_setup_notebook</code></b> and <em>Run all</em> to render the
+      widgets. It creates the shared project, grants your attendees, and forks a branch (with its own
+      endpoint) for each — all with your notebook identity, no CLI. Fill the widgets:</p>
+    <pre><code><span class="c"># widget                     value</span>
+grant_users                = sofia.martins@cibc.com, david.chen@cibc.com, priya.nair@cibc.com
+project_id                 = cibc-cm-workshop
+uc_catalog                 = main
+branch_max_cu              = 4
+dry_run                    = true   <span class="c"># preview first, then set false and re-run</span></code></pre>
     <p>What it does — all idempotent, safe to re-run:</p>
     <ol class="steps">
       <li>Creates the project <code>cibc-cm-workshop</code> (if missing) and waits for its production endpoint.</li>
       <li>Grants each attendee <code>CAN_USE</code> on the project and creates their Postgres OAuth login role (installs the <code>databricks_auth</code> extension).</li>
-      <li>Forks a branch per attendee off production (<code>br · &lt;username&gt;</code>, <code>no_expiry</code>) with a primary READ/WRITE endpoint set to an autoscaling range of <b>1 → 4 CU</b> (from <code>--branch-max-cu</code>) so the Exercise 1 load demo can show compute scaling.</li>
-      <li>Prints the attendee → project/branch map, the UC grants to apply, and the one env var each attendee sets.</li>
+      <li>Forks a branch per attendee off production (<code>br · &lt;username&gt;</code>, <code>no_expiry</code>) with a primary READ/WRITE endpoint set to an autoscaling range of <b>1 → 4 CU</b> (from <code>branch_max_cu</code>) so the Exercise 1 load demo can show compute scaling.</li>
+      <li>Prints the attendee → project/branch map, the UC grants to apply, and the one value each attendee sets.</li>
     </ol>
-    <div class="note"><b>Why <code>--branch-max-cu 4</code>:</b> Exercise 1's autoscale/load demo only shows
+    <div class="note"><b>Why <code>branch_max_cu = 4</code>:</b> Exercise 1's autoscale/load demo only shows
       a curve if the branch endpoint can scale (<code>max_cu &gt; min_cu</code>). Without it, branches sit at
       1 → 1 CU and the graph is flat. The SDK reports endpoint <em>state</em> and the min/max envelope but
       not a live CU number — confirm the range in the Lakebase UI (branch → endpoint → compute) if needed.</div>
-    <div class="note"><b>Tip:</b> add <code>--dry-run</code> first to see exactly what it will do without
-      changing anything. Add <code>--app-name &lt;lab-app&gt;</code> if you're also deploying a Lab app
-      (grants its service principal a role).</div>
-    <div class="note check"><b>✓ Check</b> — the script prints one <code>br · &lt;username&gt;</code> per
+    <div class="note"><b>Tip:</b> keep <code>dry_run = true</code> first to see exactly what it will do
+      without changing anything, then set it <code>false</code> and re-run. Set the <code>app_name</code>
+      widget if you're also deploying a Lab app (grants its service principal a role).</div>
+    <div class="note check"><b>✓ Check</b> — the notebook prints one <code>br · &lt;username&gt;</code> per
       attendee with "branch created" + "endpoint"; the map lists every attendee against the project.</div>
 
     <h3>Then finish the grants it can't set</h3>
-    <p>The script prints these — apply them once (Catalog Explorer / a SQL warehouse / admin console):</p>
+    <p>The notebook prints these — apply them once (Catalog Explorer / a SQL warehouse / admin console):</p>
     <ol class="steps">
       <li><b>Compute:</b> <code>CAN USE</code> on a serverless SQL warehouse; serverless notebooks/jobs enabled.</li>
-      <li><b>Unity Catalog:</b> handled by <code>--uc-catalog</code> — it creates the catalog + a per-attendee <code>cm_&lt;user&gt;</code> schema they own + <code>USE CATALOG</code> (creating the catalog needs <code>CREATE CATALOG</code> / metastore admin).</li>
+      <li><b>Unity Catalog:</b> handled by the <code>uc_catalog</code> widget — it creates the catalog + a per-attendee <code>cm_&lt;user&gt;</code> schema they own + <code>USE CATALOG</code> (creating the catalog needs <code>CREATE CATALOG</code> / metastore admin).</li>
       <li><b>Model Serving:</b> <code>CAN QUERY</code> on the Claude FM endpoint + the entitlement to create serving endpoints.</li>
     </ol>
 
     <h3>Point attendees at the project</h3>
-    <p>Attendees set <b>one</b> env var (or the <code>SHARED_PROJECT_ID</code> constant in
-      <a href="../labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a>) to the
-      project id you created. Their branch is derived from their username automatically:</p>
-    <pre><code><span class="c"># each attendee, once, in their workspace:</span>
-LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
+    <p>Attendees set <b>one</b> value — the <code>SHARED_PROJECT_ID</code> constant in
+      <a href="../labs/_setup.py" target="_blank" rel="noopener"><code>labs/_setup.py</code></a> (or export
+      <code>LAKEBASE_SHARED_PROJECT_ID</code>) — to the project id you created. Their branch is derived
+      from their username automatically:</p>
+    <pre><code><span class="c"># each attendee, once, in their clone of labs/_setup.py:</span>
+SHARED_PROJECT_ID = "cibc-cm-workshop"</code></pre>
     <div class="note"><b>Fail-fast &amp; auto-routing:</b> if the project id is unset or wrong, the
       exercises stop immediately with a clear message (no 10-minute hang on a nonexistent project).
       And if you split a large room across projects (below), attendees can still set the <b>base</b> id
@@ -256,18 +259,19 @@ LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code></pre>
   <section class="step" id="scale">
     <div class="sh"><span class="snum" style="background:var(--lakebase)">＋</span><h2>Optional: too many attendees for one project</h2></div>
     <p>A Lakebase project caps how many branches it can hold. If your headcount would exceed it, cap the
-      branches per project and the script <b>automatically creates additional projects</b>
-      (<code>cibc-cm-workshop-1</code>, <code>-2</code>, …) and splits attendees across them:</p>
-    <pre><code>python scripts/facilitator_setup.py -p lakebase \
-    --project-id cibc-cm-workshop \
-    --grant-user a@cibc.com --grant-user b@cibc.com ... \
-    --max-branches-per-project 18 \
-    --uc-catalog main</code></pre>
+      branches per project and the notebook <b>automatically creates additional projects</b>
+      (<code>cibc-cm-workshop-1</code>, <code>-2</code>, …) and splits attendees across them — just set
+      the <code>max_branches_per_project</code> widget:</p>
+    <pre><code><span class="c"># widget</span>
+project_id                 = cibc-cm-workshop
+grant_users                = a@cibc.com, b@cibc.com, ...
+max_branches_per_project   = 18
+uc_catalog                 = main</code></pre>
     <div class="note opt"><b>What changes for attendees:</b> nothing, really — they can all set the
-      <b>base</b> id (<code>LAKEBASE_SHARED_PROJECT_ID=cibc-cm-workshop</code>) and <code>_setup</code>
+      <b>base</b> id (<code>SHARED_PROJECT_ID = "cibc-cm-workshop"</code>) and <code>_setup</code>
       auto-routes each person to the split project that holds their branch. (Setting the exact project
       from the printed map, e.g. <code>cibc-cm-workshop-2</code>, also works and skips the lookup.)</div>
-    <p>Set <code>--max-branches-per-project</code> a little below your workspace's actual limit to leave
+    <p>Set <code>max_branches_per_project</code> a little below your workspace's actual limit to leave
       headroom. Re-running is safe: existing projects/branches are detected and skipped.</p>
   </section>
 

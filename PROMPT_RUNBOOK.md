@@ -22,21 +22,24 @@ confirm before moving on.
 - Everything runs on **serverless** — no cluster needed.
 
 > **Prerequisites:** see `FACILITATOR.md → Prerequisites` — Unity Catalog + a catalog, a serverless
-> SQL warehouse, Lakebase (project created by the facilitator via `scripts/facilitator_setup.py`), a
-> served pay-per-token Claude endpoint, permission to create serving endpoints (feature store) and
-> serverless DLT pipelines (SCD1).
+> SQL warehouse, Lakebase (project created by the facilitator via the `scripts/facilitator_setup_notebook`
+> notebook), a served pay-per-token Claude endpoint, permission to create serving endpoints (feature
+> store) and serverless DLT pipelines (SCD1).
 
 ---
 
 ## Phase 0 — Facilitator setup (once, before the room)
-Create the **shared** Lakebase project and a **branch per participant**, and grant them. Idempotent.
-```bash
-python scripts/facilitator_setup.py -p <profile> \
-    --project-id cibc-cm-workshop \
-    --grant-user a@cibc.com --grant-user b@cibc.com \
-    --branch-max-cu 4 --uc-catalog main
-# large room past the per-project branch limit: add --max-branches-per-project 18
-# (splits attendees across cibc-cm-workshop-1, -2, …; each sets LAKEBASE_SHARED_PROJECT_ID)
+Create the **shared** Lakebase project and a **branch per participant**, and grant them — **entirely
+in Databricks**. Import the repo, open the `scripts/facilitator_setup_notebook` notebook, and set the
+widgets (idempotent):
+```
+grant_users              = a@cibc.com, b@cibc.com          # attendee emails
+project_id               = cibc-cm-workshop
+uc_catalog               = main                            # or your catalog (blank = skip UC)
+branch_max_cu            = 4
+dry_run                  = true                            # preview first, then set false and re-run
+# large room past the per-project branch limit:
+max_branches_per_project = 18   # splits attendees across cibc-cm-workshop-1, -2, …; each sets SHARED_PROJECT_ID
 ```
 Then apply the workspace/UC grants it prints (serverless warehouse `CAN USE`, FM endpoint
 `CAN QUERY`, create-serving-endpoint entitlement, create-serverless-DLT-pipeline for Ex7).
@@ -55,7 +58,7 @@ settle afterward. Full steps: `labs/01-getting-to-know-lakebase/README.md`.
 ✓ Participant opens their project, runs `SELECT version();` / `information_schema` queries in the SQL
 Editor, creates their `cm_<username>` schema, and sees the branch scale under load (CU rises above
 `min` during the run, settles after). *(Branch endpoints need `max_cu > min_cu` for the curve to
-show — the facilitator sets this with `--branch-max-cu`.)*
+show — the facilitator sets this with the `branch_max_cu` widget.)*
 
 ---
 

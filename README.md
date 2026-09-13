@@ -39,28 +39,23 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
 
 ## For facilitators — set up before the room
 
-1. **Authenticate** the Databricks CLI to the workshop workspace:
-   ```bash
-   databricks auth login <workspace-host> --profile <profile>
-   ```
-2. **Create the shared project + a branch per participant** with the setup script. Everyone
-   shares **one Lakebase project**; each attendee gets their **own branch** (isolated, own
-   endpoint) that the exercises connect to automatically:
-   ```bash
-   python scripts/facilitator_setup.py -p <profile> \
-       --project-id cibc-cm-workshop \
-       --grant-user sofia@cibc.com --grant-user david@cibc.com \
-       --uc-catalog main
-   ```
-   Too many attendees for one project's branch limit? Add `--max-branches-per-project N` and the
-   script splits them across `cibc-cm-workshop-1`, `-2`, …. Add `--branch-max-cu 4` to give each
-   branch an autoscaling envelope (min 1 → max 4 CU) so the Exercise 1 load demo shows scaling.
-   Add `--dry-run` first to see exactly what it will do. The script is idempotent.
+1. **Import this repo into the workspace** (Repos → Add Repo / Git folder). Everything runs
+   inside Databricks — no CLI, no laptop setup.
+2. **Create the shared project + a branch per participant** by opening the
+   **`scripts/facilitator_setup_notebook`** notebook and running it. It runs with your notebook
+   identity (no CLI/profile) and is idempotent. Everyone shares **one Lakebase project**; each
+   attendee gets their **own branch** (isolated, own endpoint) that the exercises connect to
+   automatically. *Run all* to render the widgets, then fill them in — at minimum:
+   - **`grant_users`** — attendee emails (comma/space separated)
+   - **`project_id`** — `cibc-cm-workshop` (default)
+   - **`uc_catalog`** — the catalog to use (e.g. `main`, or blank to skip UC)
 
-   **Prefer to run it in Databricks?** Import the repo and open **`scripts/facilitator_setup_notebook`**
-   — same logic with widgets and your notebook identity (no CLI/profile needed). Fill the widgets
-   (at least the attendee emails), keep `dry_run = true` for a preview, then set it `false`.
-3. **Finish the workspace/UC grants** the script prints (serverless warehouse `CAN USE`,
+   Keep **`dry_run = true`** for a no-op preview first, then set it `false` and re-run to
+   provision. Too many attendees for one project's branch limit? Set
+   **`max_branches_per_project`** and the notebook splits them across `cibc-cm-workshop-1`,
+   `-2`, …. **`branch_max_cu`** (default 4) gives each branch an autoscaling envelope
+   (min 1 → max 4 CU) so the Exercise 1 load demo shows scaling.
+3. **Finish the workspace/UC grants** the notebook prints (serverless warehouse `CAN USE`,
    Foundation Model endpoint `CAN QUERY`, ability to create serving endpoints) — see
    `FACILITATOR.md → Permissions`.
 4. **Tell participants the project id.** Everyone sets `SHARED_PROJECT_ID` in `labs/_setup.py`
@@ -68,6 +63,7 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
    If you split a large room across `cibc-cm-workshop-1`, `-2`, …, they can still set the **base**
    id — `_setup` auto-routes each attendee to the split project that holds *their* branch. If the
    project id is unset or wrong, the exercises **fail fast with a clear message** (no long hang).
+   The notebook prints the attendee → project map at the end.
 
 See **`docs/facilitator.html`** for the visual setup walkthrough (topology diagram + step-by-step).
 
@@ -94,8 +90,7 @@ Feature Serving) and **serverless DLT pipelines** (SCD1 exercise). Full checklis
 
 ```
 START_HERE.py                    run-first notebook guide: prints live links to every exercise + walkthrough
-scripts/facilitator_setup.py     create shared Lakebase project + a branch per participant (facilitator CLI)
-scripts/facilitator_setup_notebook.py   same setup, runnable in Databricks with widgets (no CLI needed)
+scripts/facilitator_setup_notebook.py   create shared Lakebase project + a branch per participant (Databricks notebook, widgets, no CLI)
 labs/_setup.py                   shared connection helper (%run by each exercise)
 labs/01-getting-to-know-lakebase/   README + Autoscale_Load.py (drive load, watch the branch scale)
 labs/02-authentication/             Connect_And_Generate_Data.py + VSCODE_CONNECT.md

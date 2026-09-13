@@ -17,7 +17,7 @@ By the end you will be able to:
 - Recognize the operational features (autoscaling, scale-to-zero, branching, PITR, Unity Catalog
   sync) you'll use hands-on in later exercises.
 
-> **Before you start:** your facilitator has already run `scripts/facilitator_setup.py`, so the shared
+> **Before you start:** your facilitator has already run `scripts/facilitator_setup_notebook`, so the shared
 > workshop project exists and **you have your own branch** in it — `br · <username>`, an isolated
 > copy-on-write clone with its own compute endpoint. Every exercise connects to your branch
 > automatically. (Inside your branch your tables live in schema **`cm_<username>`**.) If you can't see

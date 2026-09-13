@@ -21,7 +21,7 @@ group. The reference solution notebook in each folder is the validated version t
 |---|---|---|
 | **Unity Catalog** + a writable catalog | feature-store offline table (`<catalog>.cm_<user>`) + the sync/SCD1 exercises' Delta tables | Required. Placeholder `main`. |
 | **Serverless SQL warehouse** + serverless notebooks/jobs | all exercises run on serverless | Required — no cluster needed. Note the warehouse id. |
-| **Lakebase** (managed Postgres, autoscaling projects) | the whole workshop | Required. The facilitator creates one shared project + **a branch per attendee** via `scripts/facilitator_setup.py`. **Mind the per-project branch limit** — past it, the script splits attendees across extra projects (`--max-branches-per-project`). |
+| **Lakebase** (managed Postgres, autoscaling projects) | the whole workshop | Required. The facilitator creates one shared project + **a branch per attendee** via the `scripts/facilitator_setup_notebook` notebook. **Mind the per-project branch limit** — past it, the notebook splits attendees across extra projects (`max_branches_per_project` widget). |
 | **`databricks_auth` Postgres extension** | OAuth login roles for participants | Installed by the setup script (`CREATE EXTENSION databricks_auth`). |
 | **Foundation Model APIs** — a served pay-per-token Claude endpoint (e.g. `databricks-claude-sonnet-4-5`) | feature-store chatbot + memory agent LLM | Must be **served in your region** — check `system.ai` / serving endpoints directly; docs lag. Swap the endpoint name in the notebooks if yours differs. |
 | **Feature Engineering / Online Feature Store** | Ex4 (feature store) publish to Lakebase + Feature Serving | GA. `databricks-feature-engineering>=0.13.0`. |
@@ -43,24 +43,24 @@ group. The reference solution notebook in each folder is the validated version t
 
 ## Permissions to grant participants (facilitator, before the room)
 
-Most of this is done for you by **`scripts/facilitator_setup.py`**; the rest it prints for you to
-apply. Simplest: put the attendees in one workspace group and grant that group.
+Most of this is done for you by the **`scripts/facilitator_setup_notebook`** notebook; the rest it
+prints for you to apply. Simplest: put the attendees in one workspace group and grant that group.
 
 **Set by the setup script:**
 - **Lakebase project** — `CAN_USE` (control plane) for each attendee, plus an OAuth login role
   (data plane) on production.
 - **A branch per attendee** — forked off production (`br · <username>`, `no_expiry`) with its own
   primary READ/WRITE endpoint. The exercises connect to the attendee's own branch automatically.
-- (with `--app-name`) the Lab app's service principal → project `CAN_MANAGE` + a Postgres role.
-- (with `--uc-catalog`) **creates the shared UC catalog** + one schema per attendee (`cm_<user>`)
+- (with the `app_name` widget) the Lab app's service principal → project `CAN_MANAGE` + a Postgres role.
+- (with the `uc_catalog` widget) **creates the shared UC catalog** + one schema per attendee (`cm_<user>`)
   **owned by that attendee** (so they can create tables/objects in it), and grants everyone
   `USE CATALOG`. All via the UC SDK — no SQL warehouse.
 
-**You still apply manually (the script prints these):**
+**You still apply manually (the notebook prints these):**
 - **Compute:** `CAN USE` on the serverless SQL warehouse; serverless notebooks/jobs enabled.
-- **Unity Catalog:** handled by `--uc-catalog` above (catalog + a per-attendee `cm_<user>` schema
-  they own + `USE CATALOG`). Only do this by hand if you skip that flag — and note creating the
-  catalog needs `CREATE CATALOG` / metastore admin.
+- **Unity Catalog:** handled by the `uc_catalog` widget above (catalog + a per-attendee `cm_<user>`
+  schema they own + `USE CATALOG`). Only do this by hand if you leave that widget blank — and note
+  creating the catalog needs `CREATE CATALOG` / metastore admin.
 - **Model Serving / Foundation Models:** `CAN QUERY` on the pay-per-token FM endpoint (feature-store
   chatbot + memory agent), and the entitlement to **create serving endpoints** (feature-store Feature
   Serving endpoint).
@@ -71,18 +71,17 @@ apply. Simplest: put the attendees in one workspace group and grant that group.
 
 ### Project / branch layout
 - **One shared project, a branch per attendee (default).** Fewest projects; each attendee still gets a
-  fully-isolated branch (own endpoint, own data) they can freely load and break. Run:
-  ```
-  python scripts/facilitator_setup.py -p <profile> --project-id cibc-cm-workshop \
-      --grant-user a@cibc.com --grant-user b@cibc.com ... --uc-catalog main
-  ```
-- **Too many attendees for one project's branch limit?** Add `--max-branches-per-project N` — the
-  script creates `cibc-cm-workshop-1`, `-2`, … and splits attendees across them. Attendees can set
-  `LAKEBASE_SHARED_PROJECT_ID` (or `SHARED_PROJECT_ID`) to the **base** id — `labs/_setup.py`
-  auto-routes each one to the split project that holds *their* branch (setting the exact project from
-  the printed map also works). Their branch is unchanged. Isolation is by branch, but Lakebase ACL is
-  project-level, so it's isolation by convention (fine for a workshop). Full walkthrough:
-  `docs/facilitator.html`.
+  fully-isolated branch (own endpoint, own data) they can freely load and break. Open the
+  `scripts/facilitator_setup_notebook` notebook and set the widgets: `grant_users` (attendee emails),
+  `project_id` = `cibc-cm-workshop`, `uc_catalog` = `main` (or your catalog). Keep `dry_run = true`
+  for a preview, then set it `false` and re-run.
+- **Too many attendees for one project's branch limit?** Set the `max_branches_per_project` widget —
+  the notebook creates `cibc-cm-workshop-1`, `-2`, … and splits attendees across them. Attendees can
+  set `SHARED_PROJECT_ID` (or export `LAKEBASE_SHARED_PROJECT_ID`) to the **base** id —
+  `labs/_setup.py` auto-routes each one to the split project that holds *their* branch (setting the
+  exact project from the printed map also works). Their branch is unchanged. Isolation is by branch,
+  but Lakebase ACL is project-level, so it's isolation by convention (fine for a workshop). Full
+  walkthrough: `docs/facilitator.html`.
 
 ---
 
@@ -198,14 +197,13 @@ is already serverless; the cost is pipeline orchestration + initial snapshot, wh
 - **Agentic-memory exercise:** the `checkpoint%` tables live on the attendee's branch — dropping the
   branch clears them.
 - **Lakebase:** stop/delete the shared project(s) after the workshop (Compute → Database Instances /
-  Lakebase). One project normally; more if you split with `--max-branches-per-project`.
-- **Reset one attendee mid-workshop:** delete their branch and re-run the setup script — it recreates
+  Lakebase). One project normally; more if you split with `max_branches_per_project`.
+- **Reset one attendee mid-workshop:** delete their branch and re-run the setup notebook — it recreates
   just the missing branch.
 - Everything is idempotent — re-running a notebook rebuilds its artifacts.
 
 ## Get the workshop into the customer's workspace
-Import this repo folder: `databricks workspace import-dir . "/Workspace/Users/<them>/cibc-cm-lakebase-workshop"`
-(or Repos → Add Repo from Git). The `.py` files import as runnable notebooks; nothing installs
-locally. Then run `scripts/facilitator_setup.py` from a CLI authenticated to their workspace — **or,
-entirely in Databricks, open `scripts/facilitator_setup_notebook`** and run it (widgets + your notebook
-identity, no CLI/profile needed; keep `dry_run = true` for a preview first).
+Import this repo folder via **Repos → Add Repo from Git** (or `databricks workspace import-dir . "/Workspace/Users/<them>/cibc-cm-lakebase-workshop"`).
+The `.py` files import as runnable notebooks; nothing installs locally. Then, **entirely in
+Databricks**, open **`scripts/facilitator_setup_notebook`** and run it — widgets + your notebook
+identity, no CLI or profile needed. Keep `dry_run = true` for a preview first, then set it `false`.
