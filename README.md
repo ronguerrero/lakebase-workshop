@@ -67,11 +67,12 @@ See **`docs/facilitator.html`** for the visual setup walkthrough (topology diagr
 
 ## For participants — get started
 
-1. Clone/import this repo into your Databricks workspace (Repos → Add Repo, or
-   `databricks workspace import-dir`).
-2. Open `labs/01-getting-to-know-lakebase/README.md` and work through the exercises in order.
-3. Each Genie-driven exercise tells you exactly what to paste into **Genie Code**; the reference
-   notebook in the same folder is there if you get stuck.
+1. Clone this repo into your Databricks workspace (Repos → Add Repo / Git folder).
+2. Open **`START_HERE`** and **Run all** — it's the guided walkthrough, and its first cell prints
+   working links to every exercise notebook *in your clone* (resolved at runtime, so they work no
+   matter where you cloned it). Prefer a browser? Open `docs/attendee.html` for the visual version.
+3. Work the exercises in order 1 → 7. Each has a reference notebook to run **and** a Genie Code
+   prompt you can paste into the Databricks Assistant instead.
 
 ---
 
@@ -86,6 +87,7 @@ Feature Serving) and **serverless DLT pipelines** (SCD1 exercise). Full checklis
 ## Layout
 
 ```
+START_HERE.py                    run-first notebook guide: prints live links to every exercise + walkthrough
 scripts/facilitator_setup.py     create shared Lakebase project + a branch per participant (facilitator)
 labs/_setup.py                   shared connection helper (%run by each exercise)
 labs/01-getting-to-know-lakebase/   README + Autoscale_Load.py (drive load, watch the branch scale)
