@@ -49,7 +49,8 @@ Capital Markets Coverage Desk Assistant." Build it exactly as follows:
    options set so search_path is my per-user schema then public.
 
 3. LLM: use ChatDatabricks from langchain_databricks against a pay-per-token Claude
-   endpoint (e.g. "databricks-claude-sonnet-4"). Claude endpoints reject the temperature field that
+   endpoint — set the `llm_endpoint` widget (default "databricks-claude-sonnet-4-5"; swap to whatever
+   your region serves). Claude endpoints reject the temperature field that
    ChatDatabricks sends by default, so subclass ChatDatabricks and override
    _prepare_inputs to pop "temperature" from the payload dict before it is sent. Use the
    subclass as the LLM.

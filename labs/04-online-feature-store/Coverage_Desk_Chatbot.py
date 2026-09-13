@@ -33,9 +33,14 @@ dbutils.library.restartPython()
 
 # Must match Feature_Store.py
 ENDPOINT_NAME = f"cm-client-risk-{_sanitize(user_email)}"[:63]
-# Pay-per-token FM endpoint. Verified served in the build workspace; swap if yours
-# differs (e.g. databricks-claude-sonnet-4-5, databricks-claude-haiku-4-5).
-LLM_ENDPOINT = "databricks-claude-sonnet-4-5"
+
+# Pay-per-token Foundation Model endpoint. The name follows the standard
+# `databricks-<model>` convention, but which Claude model is served varies by
+# region/cloud — set this widget to whatever your workspace serves (check the
+# Serving UI or `system.ai.serving_endpoints`), e.g. databricks-claude-sonnet-4-5,
+# databricks-claude-haiku-4-5.
+dbutils.widgets.text("llm_endpoint", "databricks-claude-sonnet-4-5", "LLM serving endpoint")
+LLM_ENDPOINT = dbutils.widgets.get("llm_endpoint")
 
 print(f"Feature Serving endpoint: {ENDPOINT_NAME}")
 print(f"LLM endpoint:             {LLM_ENDPOINT}")

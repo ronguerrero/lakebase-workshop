@@ -83,9 +83,10 @@ Run Part A first (it creates the endpoint). Fresh Genie Code chat, paste:
 > Create a Databricks notebook with a LangChain chatbot called the **Coverage Desk
 > Assistant** for a CIBC Capital Markets coverage officer.
 > 1. `%pip install "langchain>=0.3,<0.4" "langchain-databricks" "mlflow" "databricks-sdk>=0.118.0"`, then restart Python. (Pin langchain <0.4 — 1.x removes `create_tool_calling_agent` and breaks `langchain-databricks` 0.1.2.)
-> 2. LLM: `ChatDatabricks` on a pay-per-token endpoint (`databricks-claude-sonnet-4` — swap
->    if not served). **Subclass ChatDatabricks and override `_prepare_inputs` to pop
->    "temperature"** (some Claude endpoints reject it).
+> 2. LLM: `ChatDatabricks` on a pay-per-token endpoint — set the `llm_endpoint` widget
+>    (default `databricks-claude-sonnet-4-5`; swap to whatever your region serves).
+>    **Subclass ChatDatabricks and override `_prepare_inputs` to pop "temperature"**
+>    (some Claude endpoints reject it).
 > 3. Define a LangChain `@tool` `lookup_client_risk(client)` that resolves a client
 >    name/ticker/id to a `client_id` and calls my Feature Serving endpoint
 >    `cm-client-risk-<my_username>` with the **MLflow deploy client**
