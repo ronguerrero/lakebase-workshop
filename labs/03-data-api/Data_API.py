@@ -80,35 +80,45 @@ conn.close()
 # MAGIC read/write rows over HTTP with a **bearer token** and get **JSON** back: no Postgres driver,
 # MAGIC works from any language, ideal for serverless/edge front ends and browsers.
 # MAGIC
-# MAGIC Two facts that make this "just work" (both learned the hard way — see the notes):
-# MAGIC 1. **The base URL comes from the project's Data API config** (`get_data_api().status.url`), *not*
-# MAGIC    hand-built from the Postgres host. The request path is `{url}/{schema}/{table}?select=…` —
-# MAGIC    **the schema is in the path** (PostgREST convention), no `Accept-Profile` header.
-# MAGIC 2. **The bearer is a Databricks workspace OAuth token** (your notebook session identity), **not**
-# MAGIC    the Postgres DB credential you use for psycopg/JDBC. The Data API maps your Databricks
-# MAGIC    identity to your Postgres role via an internal `authenticator` role.
+# MAGIC Three things must line up for a REST read to succeed (all learned the hard way — the
+# MAGIC **caveats cell** right after this one gives the exact fixes):
+# MAGIC 1. **Base URL** — copy the **API URL** from the project's **Data API** page. The request path is
+# MAGIC    `{url}/{schema}/{table}?select=…` — **the schema goes in the path** (PostgREST convention), no
+# MAGIC    `Accept-Profile` header. Auto-discovery via `get_data_api()` works on some workspaces but
+# MAGIC    **404s on others**, so pasting the URL into the `rest_base` widget is the reliable path.
+# MAGIC 2. **Bearer token** — must be the **Lakebase-minted** OAuth token from
+# MAGIC    `generate_database_credential` (the same short-lived DB credential psycopg/JDBC use), **not**
+# MAGIC    `w.config.authenticate()`. A workspace/account token is rejected with
+# MAGIC    `PGRST301 invalid token permissions`.
+# MAGIC 3. **Your schema is exposed and your role is granted** — the facilitator adds `cm_<you>` to the
+# MAGIC    Data API's exposed schemas **and** grants your Postgres role to the internal `authenticator`
+# MAGIC    role. Miss either and you get `PGRST106` (schema not exposed) or `42501 permission denied to
+# MAGIC    set role`.
 # MAGIC
-# MAGIC > **Prerequisites (facilitator, once per project):** on the project's **Data API** page click
-# MAGIC > **Enable Data API** (creates the `authenticator` role), and **expose your schema** by adding it
-# MAGIC > to the Data API's `db_schemas`. The Data API is GA in current Lakebase but the management
-# MAGIC > endpoints may not be present on older workspaces — this cell **degrades gracefully** and the
-# MAGIC > JDBC path below always works. Docs: https://docs.databricks.com/aws/en/oltp/projects/data-api
+# MAGIC > If the Data API isn't fully set up yet, this cell **degrades gracefully** and prints the precise
+# MAGIC > fix, and the **JDBC path (Part B) always works** regardless — it authenticates directly as your
+# MAGIC > role and never touches `authenticator`. Docs: https://docs.databricks.com/aws/en/oltp/projects/data-api
 
 # COMMAND ----------
 
 import json
+import time
 import requests
 
-# Optional override: paste the "API URL" from the project's Data API page if get_data_api()
-# isn't available on your workspace. Leave blank to auto-discover it from the Data API config.
-dbutils.widgets.text("rest_base", "", "Data API base URL (blank = auto-discover)")
+# ►► Paste the "API URL" from your project's Data API page into this widget. Auto-discovery via
+# get_data_api() runs only when it's blank — and that management endpoint 404s on some workspaces —
+# so the widget is the reliable path. The URL looks like:
+#   https://<endpoint-host>/api/2.0/workspace/<workspace_id>/rest/databricks_postgres
+dbutils.widgets.text("rest_base", "", "Data API base URL (paste from the Data API page)")
 REST_BASE = dbutils.widgets.get("rest_base").strip().rstrip("/")
 
-# The Data API bearer is the WORKSPACE OAuth token (session identity) — NOT the DB credential.
-# w.config.authenticate() returns the right Authorization header for however this notebook is authed.
+# GATE 2: the Data API bearer must be the LAKEBASE-MINTED OAuth token (generate_database_credential),
+# NOT w.config.authenticate(). PostgREST validates this token and maps it to your Postgres role; a
+# workspace/account token is rejected with PGRST301 "invalid token permissions". Mint fresh per call
+# (it rotates ~hourly).
+ep = get_endpoint()                                    # your branch's primary endpoint
 def _bearer_token():
-    hdr = w.config.authenticate() or {}
-    return hdr.get("Authorization", "").split(" ", 1)[-1]
+    return w.postgres.generate_database_credential(endpoint=ep.name).token
 
 exposed_schemas = None
 if not REST_BASE:
@@ -116,43 +126,108 @@ if not REST_BASE:
         da = w.postgres.get_data_api(name=f"projects/{PROJECT_ID}/dataApi")
         REST_BASE = (getattr(da.status, "url", "") or "").rstrip("/")
         exposed_schemas = getattr(da.status, "available_schemas", None) or getattr(da.status, "db_schemas", None)
-        print(f"✓ Data API discovered: {REST_BASE}")
+        print(f"✓ Data API auto-discovered: {REST_BASE}")
         print(f"  exposed schemas: {exposed_schemas}")
     except Exception as e:
-        print(f"Data API config not available on this workspace ({str(e)[:120]}).")
-        print("→ Enable it on the project's Data API page and expose your schema, or paste its URL")
-        print("  into the 'rest_base' widget. Skipping the live REST call; JDBC below still runs.")
+        print(f"Auto-discovery unavailable on this workspace ({str(e)[:100]}).")
+        print("→ Open the project's Data API page, copy its API URL, paste it into the 'rest_base'")
+        print("  widget above, and re-run. (The JDBC path in Part B works regardless.)")
+
+
+def _diagnose(resp):
+    """Map the common Data API failures to the exact fix — see the caveats cell below."""
+    body = resp.text[:500]
+    if '"PGRST106"' in body:
+        print(f"→ GATE 3a: schema '{PG_SCHEMA}' is NOT exposed. Facilitator: add it to the Data API's")
+        print("  exposed schemas (db_schemas) on the project's Data API page.")
+    elif '"PGRST301"' in body:
+        print("→ GATE 2: wrong bearer token — must be generate_database_credential (Lakebase-minted),")
+        print("  not w.config.authenticate(). This notebook already uses the right one.")
+    elif '"42501"' in body or "set role" in body:
+        print("→ GATE 3b: your Postgres role isn't granted to 'authenticator', so PostgREST can't")
+        print(f'  SET ROLE to you. Facilitator (as the role\'s creator): GRANT "{user_email}" TO')
+        print("  authenticator;  — see the caveats cell for why a plain GRANT can fail.")
+    elif '"PGRST205"' in body:
+        print("→ Schema-cache lag: the table was created recently; PostgREST re-introspects every")
+        print("  ~15-20s. Re-run in a moment.")
+
 
 REST_TABLE = "clients"
 if REST_BASE:
     if exposed_schemas is not None and PG_SCHEMA not in (exposed_schemas or []):
-        print(f"⚠ Your schema '{PG_SCHEMA}' isn't in the Data API's exposed schemas {exposed_schemas}.")
-        print(f"  Add it to the Data API 'db_schemas' (Data API page) or the call will 404/400.")
-    url = f"{REST_BASE}/{PG_SCHEMA}/{REST_TABLE}"        # schema is IN THE PATH
-    headers = {"Authorization": f"Bearer {_bearer_token()}", "Accept": "application/json"}
+        print(f"⚠ Your schema '{PG_SCHEMA}' isn't in the exposed schemas {exposed_schemas} — see caveats.")
+    url = f"{REST_BASE}/{PG_SCHEMA}/{REST_TABLE}"        # schema is IN THE PATH (PostgREST convention)
     params = {"select": "client_id,legal_name,sector,coverage_officer", "limit": "5"}
     print("GET", url, params)
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=20)
+    for attempt in range(4):                             # PGRST205 (schema cache) can lag ~15-20s
+        try:
+            resp = requests.get(url, timeout=20, params=params,
+                                headers={"Authorization": f"Bearer {_bearer_token()}",
+                                         "Accept": "application/json"})
+        except Exception as e:
+            print(f"REST call did not complete: {e}")
+            print("The JDBC path below does not depend on the Data API and works regardless.")
+            break
         print("HTTP", resp.status_code)
         if resp.ok:
             rows = resp.json()
             print(f"✓ REST returned {len(rows)} JSON rows:")
             print(json.dumps(rows, indent=2)[:1200])
-        else:
-            print("Response body (check the Data API is enabled + your schema is exposed):")
-            print(resp.text[:800])
-    except Exception as e:
-        print(f"REST call did not complete: {e}")
-        print("The JDBC path below does not depend on the Data API and works regardless.")
+            break
+        if '"PGRST205"' in resp.text and attempt < 3:
+            print("  schema cache warming up — retrying in 8s ...")
+            time.sleep(8)
+            continue
+        print("Response body:", resp.text[:600])
+        _diagnose(resp)
+        break
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC **What just happened:** the app authenticated with a workspace OAuth bearer token (no driver,
-# MAGIC no connection to manage) and got rows as JSON. A React dashboard, a Lambda/edge function, or a
-# MAGIC Python microservice would call it exactly the same way. Auth is **per-request** — refresh the
-# MAGIC OAuth token when it rotates (~hourly).
+# MAGIC **What just happened:** the app authenticated with a short-lived **Lakebase-minted** OAuth bearer
+# MAGIC token (no driver, no connection to manage) and got rows back as JSON. A React dashboard, a
+# MAGIC Lambda/edge function, or a Python microservice would call it exactly the same way. Auth is
+# MAGIC **per-request** — mint a fresh token when it rotates (~hourly).
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## ⚠️ Caveats — how to actually make the REST Data API work
+# MAGIC
+# MAGIC The REST path needs **three gates** to line up. **JDBC (Part B) needs none of them** — it
+# MAGIC connects directly as your role — so if REST is blocked, the workshop still proceeds on JDBC.
+# MAGIC
+# MAGIC | Gate | Symptom if missing | Who fixes it |
+# MAGIC |---|---|---|
+# MAGIC | **1. Base URL** | auto-discovery 404s / no REST call is made | You — paste the API URL from the Data API page into the `rest_base` widget |
+# MAGIC | **2. Lakebase-minted token** | `PGRST301 invalid token permissions` | Already handled — this notebook uses `generate_database_credential`, not `w.config.authenticate()` |
+# MAGIC | **3a. Schema exposed** | `PGRST106 … Invalid schema` | Facilitator — add `cm_<you>` to the Data API's exposed schemas (`db_schemas`) |
+# MAGIC | **3b. Role granted to `authenticator`** | `42501 permission denied to set role` | Facilitator — grant your role to `authenticator` (recipe below) |
+# MAGIC
+# MAGIC **Why gate 3b is subtle.** PostgREST connects as an `authenticator` role and runs
+# MAGIC `SET ROLE "<you>"` on **every** request, so `authenticator` must be a *member* of your role. A
+# MAGIC plain `GRANT "<you>" TO authenticator` only works when the grantor **created your role themselves**
+# MAGIC via `databricks_create_role` (the creator automatically gets `ADMIN OPTION` on it). A role
+# MAGIC auto-provisioned by the control plane has **no ADMIN holder**, so the grant is refused for everyone
+# MAGIC except a Databricks platform superuser.
+# MAGIC
+# MAGIC **Facilitator recipe** — run in the SQL Editor on the branch that serves the Data API, *after*
+# MAGIC the Data API is enabled (which creates `authenticator`):
+# MAGIC ```sql
+# MAGIC CREATE EXTENSION IF NOT EXISTS databricks_auth;
+# MAGIC SELECT databricks_create_role('attendee@corp.com', 'USER');  -- you become ADMIN of this role
+# MAGIC GRANT "attendee@corp.com" TO authenticator;                  -- now succeeds
+# MAGIC GRANT USAGE ON SCHEMA cm_attendee TO "attendee@corp.com";    -- (attendee already owns their schema)
+# MAGIC ```
+# MAGIC If the login role **already exists** (control-plane pre-provisioned), `databricks_create_role`
+# MAGIC no-ops and you won't hold `ADMIN` — that attendee then needs a Databricks superuser, or the Data
+# MAGIC API page's principal-access control, to issue the `authenticator` grant. Full detail in
+# MAGIC `FACILITATOR.md`.
+# MAGIC
+# MAGIC > **Bottom line for the room:** REST is a great "any-language, no-driver" story to *show*, but its
+# MAGIC > per-user provisioning is fiddly. If it isn't wired up, demo REST from the facilitator's set-up
+# MAGIC > account and have everyone do the hands-on part over **JDBC**, which just works.
 
 # COMMAND ----------
 
