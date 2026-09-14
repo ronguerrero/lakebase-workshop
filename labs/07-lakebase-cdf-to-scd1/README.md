@@ -10,18 +10,7 @@ Catalog Delta tables (`lb_<table>_history`), then runs a **Lakeflow (DLT) pipeli
 Type 1** to produce current-state tables (`positions_current`, `limits_current`) — one row per key,
 latest wins.
 
-```mermaid
-flowchart LR
-    subgraph L["Your Lakebase branch"]
-        OPS["positions · limits<br/>REPLICA IDENTITY FULL<br/>(app mutations)"]
-    end
-    subgraph U["Unity Catalog · your cm_ schema"]
-        HIST["lb_positions_history<br/>lb_limits_history<br/>Delta — auto-created by CDF"]
-        CUR["positions_current<br/>limits_current<br/>SCD Type 1"]
-    end
-    OPS -->|"Lakebase CDF tails the WAL"| HIST
-    HIST -->|"Lakeflow AUTO CDC · stored_as_scd_type=1"| CUR
-```
+![Your Lakebase branch (positions · limits, REPLICA IDENTITY FULL) → Lakebase CDF auto-creates the lb_positions_history / lb_limits_history Delta tables in Unity Catalog → a Lakeflow AUTO CDC pipeline applies SCD Type 1 into positions_current / limits_current](images/ex7-cdf-scd1.png)
 
 This is the **outbound** direction. The Delta→Lakebase *sync* exercise (Ex6) pushes reference data the
 other way; together they're the round trip.

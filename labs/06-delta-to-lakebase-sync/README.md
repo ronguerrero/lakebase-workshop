@@ -7,10 +7,7 @@ app, though, needs it **live over Postgres**. A Lakebase **synced table** bridge
 continuously replicates a Unity Catalog Delta table into your Lakebase branch as an operational
 Postgres table — lakehouse-curated data, served at OLTP latency.
 
-![A serverless synced-table pipeline replicates the curated Delta source into your Lakebase branch, kept current over CDF](images/ex6-delta-sync.png)
-
-> *The diagram shows the concept; in the current lab the Delta source is `src_client_reference` and
-> the synced Lakebase table is `client_reference` (the `lb_` prefix was dropped).*
+![The curated Delta table src_client_reference is replicated by a serverless synced-table pipeline into your Lakebase branch as client_reference, kept current over CDF](images/ex6-delta-sync.png)
 
 ## What you'll learn
 - **Reverse ETL with a Lakebase synced table** — Delta (analytical) → Lakebase (operational), managed
