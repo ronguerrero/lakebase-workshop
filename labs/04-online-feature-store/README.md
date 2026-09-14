@@ -5,6 +5,8 @@ The prompts are fully-qualified so everyone in the room generates near-identical
 review it together. The reference solutions (`Feature_Store.py`, `Coverage_Desk_Chatbot.py`)
 are what Genie Code should produce; use them to compare or as a fallback.
 
+![Build: aggregate client-risk features into a Delta table (UC · PK · CDF) and sync them to a Lakebase online store. Serve: a Feature Serving endpoint backs the lookup_client_risk tool the Coverage Desk Assistant calls](images/ex4-feature-store.png)
+
 ## What you'll learn
 - Build a **capital-markets feature store**: per-client risk features (exposure, PnL,
   concentration, volatility, risk tier) as an offline Delta table.

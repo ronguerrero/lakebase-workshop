@@ -8,6 +8,8 @@ from a JVM service. This exercise shows both, and when to use each.
 table, the notebook creates a small demo one. Both paths hit **your own branch** (resolved by
 `_setup`).
 
+![Both paths read the same Lakebase branch: REST (HTTPS · OAuth bearer · JSON) for serverless / edge front ends; JDBC (pooled Postgres driver) for JVM services](images/ex3-rest-vs-jdbc.png)
+
 ## What you'll learn
 - **Data API (REST)** — reach Lakebase over HTTP with a **bearer token**, JSON rows back. No Postgres
   driver, works from any language, ideal for serverless/edge front ends and browsers. It's

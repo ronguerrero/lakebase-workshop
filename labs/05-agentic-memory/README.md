@@ -10,6 +10,8 @@ checkpointer at **Lakebase** (managed Postgres) and the agent's memory becomes d
 governed, and shared across every process that connects. This exercise builds exactly that
 and then opens the hood so you can *see* the memory sitting in Postgres.
 
+![Each turn, the LangGraph agent checkpoints its state through PostgresSaver into Lakebase (checkpoints, checkpoint_writes, checkpoint_blobs, checkpoint_migrations) — memory keyed by thread_id, durable across turns and sessions](images/ex5-agent-memory.png)
+
 ## What you'll learn
 - How a LangGraph `PostgresSaver` turns a Lakebase project into agent memory.
 - The four `checkpoint%` tables LangGraph creates, and what each holds.

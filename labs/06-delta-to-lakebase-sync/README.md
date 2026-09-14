@@ -5,7 +5,12 @@
 Your lakehouse curates a **client reference / risk-limits** table every night in Delta. The trading
 app, though, needs it **live over Postgres**. A Lakebase **synced table** bridges the two: it
 continuously replicates a Unity Catalog Delta table into your Lakebase branch as an operational
-`lb_*` table — lakehouse-curated data, served at OLTP latency.
+Postgres table — lakehouse-curated data, served at OLTP latency.
+
+![A serverless synced-table pipeline replicates the curated Delta source into your Lakebase branch, kept current over CDF](images/ex6-delta-sync.png)
+
+> *The diagram shows the concept; in the current lab the Delta source is `src_client_reference` and
+> the synced Lakebase table is `client_reference` (the `lb_` prefix was dropped).*
 
 ## What you'll learn
 - **Reverse ETL with a Lakebase synced table** — Delta (analytical) → Lakebase (operational), managed

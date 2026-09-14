@@ -179,6 +179,8 @@ client — the same values Exercise 2 uses.
 under load, **scales to zero** when idle, and so bills **pay-per-use** — the "market open" story for
 your desk's operational store.
 
+![Under load your branch's compute scales up from 1 CU toward its max; when the branch goes idle it suspends to zero — pay-per-use](images/ex1-autoscale.png)
+
 Your branch endpoint has an autoscaling envelope in **CU** (compute units): a min and a max. Under a
 burst it scales up toward max; when quiet it scales down, and a non-production branch suspends to zero
 until the next connection.
