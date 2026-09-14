@@ -53,7 +53,7 @@ dbutils.widgets.text("max_branches_per_project", "18", "6 · Max branches per pr
 dbutils.widgets.text("grant_groups", "", "7 · Groups to grant (optional)")
 dbutils.widgets.text("pg_version", "17", "8 · PostgreSQL version")
 dbutils.widgets.text("app_name", "", "9 · Lab app name (optional)")
-dbutils.widgets.dropdown("dry_run", "true", ["true", "false"], "10 · Dry run (preview only)")
+dbutils.widgets.dropdown("dry_run", "false", ["true", "false"], "10 · Dry run (preview only)")
 
 # COMMAND ----------
 
