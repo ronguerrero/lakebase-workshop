@@ -9,7 +9,7 @@
 # MAGIC
 # MAGIC | | |
 # MAGIC |---|---|
-# MAGIC | **~5h** · eight exercises | **Serverless** · no cluster |
+# MAGIC | **~5h** · nine exercises | **Serverless** · no cluster |
 # MAGIC | Hero client · **Air Canada (CL-AC)** | You work on **your own branch** of a shared project |
 # MAGIC
 # MAGIC **Before you start (once):** open <a href="$./labs/_setup">labs/_setup</a> and set the two
@@ -20,7 +20,7 @@
 # MAGIC auto-routed to the project that holds your branch. Your `cm_<user>` schema is created for you.
 # MAGIC
 # MAGIC **How to use this guide:** the links below open each exercise notebook in your clone. Work the
-# MAGIC exercises **in order 1 → 8** — open each notebook and **Run all**. Each exercise folder has its
+# MAGIC exercises **in order 1 → 9** — open each notebook and **Run all**. Each exercise folder has its
 # MAGIC own `README.md` with the full walkthrough and an **architecture diagram**.
 
 # COMMAND ----------
@@ -40,6 +40,7 @@
 # MAGIC 6. <a href="$./labs/06-delta-to-lakebase-sync/Delta_To_Lakebase">Delta → Lakebase sync</a> — reverse-ETL a curated Delta table into your branch.
 # MAGIC 7. <a href="$./labs/07-lakebase-cdf-to-scd1/Lakebase_CDF_To_SCD1">Lakebase → Delta, SCD1 (driver)</a> &nbsp;&middot;&nbsp; <a href="$./labs/07-lakebase-cdf-to-scd1/scd1_pipeline">scd1_pipeline</a> — Lakebase CDF → `lb_*_history` → an SCD1 pipeline.
 # MAGIC 8. <a href="$./labs/08-lakebase-search/Lakebase_Search">Lakebase Search</a> — earnings-call PDFs → pgvector → an agent.
+# MAGIC 9. <a href="$./labs/09-trading-dashboard/README">Build Your Own — Dashboard App</a> (free-form) — a Plotly Dash Databricks App on Lakebase.
 
 # COMMAND ----------
 
