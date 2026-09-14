@@ -49,7 +49,9 @@ prerequisites, the permissions to grant participants, the agenda, and honest tal
    automatically. *Run all* to render the widgets, then fill them in — at minimum:
    - **`grant_users`** — attendee emails (comma/space separated)
    - **`project_id`** — `cibc-cm-workshop` (default)
-   - **`uc_catalog`** — the catalog to use (e.g. `main`, or blank to skip UC)
+   - **`uc_catalog`** — the catalog to use (blank to skip UC). **For the full workshop, pre-create this
+     catalog with an explicit external storage location** and pass its name here — Ex7's Lakebase CDF
+     rejects a default-managed-storage catalog (see `FACILITATOR.md`).
 
    Keep **`dry_run = true`** for a no-op preview first, then set it `false` and re-run to
    provision. Too many attendees for one project's branch limit? Set

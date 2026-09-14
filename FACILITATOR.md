@@ -56,11 +56,16 @@ Simplest: put the attendees in one workspace group and grant that group.
   (data plane) on production.
 - **A branch per attendee** — forked off production (`br · <username>`, `no_expiry`) with its own
   primary READ/WRITE endpoint. The exercises connect to the attendee's own branch automatically.
-- (with the `uc_catalog` widget) **the shared UC catalog** + one schema per attendee (`cm_<user>`)
-  **owned by that attendee** (so they can create tables/objects in it), and `USE CATALOG` for
-  everyone. All via the UC SDK — no SQL warehouse. (Creating the catalog needs `CREATE CATALOG` /
-  metastore admin; if you lack it, the notebook reports it and a metastore admin creates the catalog
-  once, then you re-run.)
+- (with the `uc_catalog` widget) one schema per attendee (`cm_<user>`) **owned by that attendee** (so
+  they can create tables/objects in it), and `USE CATALOG` for everyone. All via the UC SDK — no SQL
+  warehouse.
+  > **Pre-create the catalog with an external location (required for Ex7 CDF).** Before running the
+  > setup notebook, create the shared catalog yourself with an **explicit external storage location**
+  > (Catalog Explorer → Create catalog → choose an external location, or `CREATE CATALOG … MANAGED
+  > LOCATION 'abfss://…'`), and pass its name as `uc_catalog`. The notebook **uses an existing catalog
+  > as-is**; a catalog it creates itself lands on the metastore's **default managed storage**, which
+  > **Ex7 Lakebase CDF rejects** (see the CDF note below). So for the full 8-exercise workshop, the
+  > external-location catalog is a facilitator prerequisite, not something the notebook can provision.
 - (with the `app_name` widget) the Lab app's service principal → project `CAN_MANAGE` + a Postgres role.
 - (with the optional `warehouse_id` widget) `CAN USE` on a SQL warehouse — only if you choose to use
   one (the workshop doesn't need it).

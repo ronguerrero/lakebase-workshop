@@ -275,6 +275,9 @@ def ensure_uc(w, catalog, groups, users, dry_run):
             try:
                 w.catalogs.create(name=catalog, comment="CIBC CM Lakebase workshop")
                 log(f"✓ catalog created: {catalog}")
+                log("  ⚠ NOTE: this catalog uses the metastore's DEFAULT managed storage, which Ex7")
+                log("    Lakebase CDF REJECTS. For the full 8-exercise workshop, pre-create the catalog")
+                log("    with an EXPLICIT external location instead and pass it as uc_catalog. See FACILITATOR.md.")
             except Exception as e:
                 log(f"⚠ could not create catalog '{catalog}' — needs CREATE CATALOG / metastore admin: {str(e)[:150]}")
                 log("  Have a metastore admin create it once, then re-run (schemas/grants will proceed).")
