@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # Exercise 8 — Lakebase Search: earnings-call PDFs → pgvector → an agent
 # MAGIC

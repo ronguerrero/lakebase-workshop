@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # Exercise 3 — Capital Markets Online Feature Store (Lakebase)
 # MAGIC

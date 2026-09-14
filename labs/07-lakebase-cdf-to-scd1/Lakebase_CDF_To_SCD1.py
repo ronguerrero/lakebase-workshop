@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # Lakebase → Delta with Change Data Feed (CDF) + an SCD Type 1 pipeline
 # MAGIC

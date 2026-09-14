@@ -21,7 +21,7 @@
 # MAGIC
 # MAGIC **How to use this guide:** the links below open each exercise notebook in your clone (nothing to run),
 # MAGIC and the architecture diagrams are inline. Work the exercises in order 1 → 8 — open each notebook and **Run all**.
-
+# MAGIC
 
 # COMMAND ----------
 
@@ -42,7 +42,7 @@
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC ## 1 · Get to know Lakebase &nbsp; <sub>UI walkthrough · no code</sub>
 # MAGIC
@@ -72,7 +72,7 @@
 # MAGIC
 # MAGIC > **✓ Check** — `version()` returns a PostgreSQL 16/17 banner, `current_user` is your email, your
 # MAGIC > `cm_<you>` schema exists, and compute rises above the minimum under load then settles.
-
+# MAGIC
 
 # COMMAND ----------
 
@@ -83,7 +83,7 @@
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC ## 2 · Authenticate &amp; generate the desk's data &nbsp; <sub>OAuth · psycopg · synthetic CM data</sub>
 # MAGIC
@@ -105,18 +105,18 @@
 # MAGIC
 # MAGIC > **✓ Check** — 9 clients, 18 instruments, 540 prices, ~76 positions, 600 trades; Air Canada's
 # MAGIC > gross notional is dominated by WTI + heating oil (~$32M of ~$33M).
-
+# MAGIC
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC ## 3 · Data APIs — how apps reach Lakebase &nbsp; <sub>REST vs JDBC</sub>
 # MAGIC
 # MAGIC Applications reach your branch two ways: a stateless **REST** data API (serverless/edge front ends,
 # MAGIC any language, per-request auth) or a pooled **JDBC** connection (lowest latency for chatty JVM
 # MAGIC services). Same data, two access patterns — and **two different tokens** (see below).
-
+# MAGIC
 
 # COMMAND ----------
 
@@ -127,7 +127,7 @@
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC **▶ Run the notebook** — <a href="$./labs/03-data-api/Data_API">Data_API</a>: it reads your branch over the REST Data API
 # MAGIC and over JDBC (Spark JDBC read), then compares. The REST base URL is auto-discovered from
@@ -143,11 +143,11 @@
 # MAGIC >
 # MAGIC > **✓ Check** — rows back over the Data API (JSON) and over JDBC; you can say which path a browser
 # MAGIC > dashboard vs a JVM service should use, and which token each uses.
-
+# MAGIC
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC ## 4 · Online Feature Store &amp; the Coverage Desk Assistant &nbsp; <sub>feature serving · MLflow · LangChain</sub>
 # MAGIC
@@ -155,7 +155,7 @@
 # MAGIC serving, expose them through a **Feature Serving endpoint**, and build a chatbot whose
 # MAGIC feature-lookup **tool** calls that endpoint. The diagram shows what gets spun up and how each piece
 # MAGIC relates to Lakebase.
-
+# MAGIC
 
 # COMMAND ----------
 
@@ -166,7 +166,7 @@
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC > **⏳ Two long steps (expected, not a hang):** `publish_table` stands up the sync pipeline (~15–20
 # MAGIC > min the first time) and the Feature Serving endpoint takes ~10–15 min to provision. Both are fixed
@@ -202,18 +202,18 @@
 # MAGIC >
 # MAGIC > **✓ Check** — Air Canada is `risk_tier=HIGH`; the online table appears in Lakebase; the agent's
 # MAGIC > trace shows `lookup_client_risk` firing and the answer reflects the large energy exposure.
-
+# MAGIC
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC ## 5 · Give the assistant a memory &nbsp; <sub>LangGraph · PostgresSaver · Lakebase</sub>
 # MAGIC
 # MAGIC The assistant forgets each turn. Back it with a LangGraph **PostgresSaver** checkpointer pointed at
 # MAGIC Lakebase and its conversation state becomes durable — surviving turns, new processes, and sessions —
 # MAGIC because the memory lives in Postgres, not the process.
-
+# MAGIC
 
 # COMMAND ----------
 
@@ -224,7 +224,7 @@
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC **▶ Run the notebook** — <a href="$./labs/05-agentic-memory/Agent_Memory">Agent_Memory</a>. Two Lakebase gotchas are baked in
 # MAGIC — connect with **keyword args (not a URL)**, and subclass `ChatDatabricks` to drop `temperature`
@@ -242,18 +242,18 @@
 # MAGIC
 # MAGIC *This completes the Coverage Desk Assistant arc. The last two exercises round-trip data between
 # MAGIC Lakebase and the lakehouse.*
-
+# MAGIC
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC ## 6 · Delta → Lakebase sync (reverse ETL) &nbsp; <sub>synced tables</sub>
 # MAGIC
 # MAGIC Take a lakehouse-curated **Delta** table (a nightly client reference / risk-limits table) and
 # MAGIC continuously sync it into your branch as an operational `lb_*` table, so the trading app reads
 # MAGIC fresh, governed data over Postgres.
-
+# MAGIC
 
 # COMMAND ----------
 
@@ -264,18 +264,18 @@
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC **▶ Run the notebook** — <a href="$./labs/06-delta-to-lakebase-sync/Delta_To_Lakebase">Delta_To_Lakebase</a>: builds the Delta
 # MAGIC source (PK + CDF), creates a Lakebase **synced table** into your branch, verifies the row count,
 # MAGIC then updates a row and re-syncs. (~minutes to provision the sync pipeline the first time.)
 # MAGIC > **✓ Check** — `lb_client_reference` exists on your branch with the same rows as the Delta source;
 # MAGIC > a Delta update propagates on re-sync (Air Canada's limit → CAD 300,000,000).
-
+# MAGIC
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC ## 7 · Lakebase → Delta (SCD Type 1 pipeline) &nbsp; <sub>CDF · Lakeflow · SCD1</sub>
 # MAGIC
@@ -283,7 +283,7 @@
 # MAGIC **current** picture for risk analytics. Turn on **Lakebase Change Data Feed** — it auto-materializes
 # MAGIC every change into `lb_*_history` Delta tables in your schema — then a **Lakeflow (DLT) AUTO CDC** flow
 # MAGIC applies **SCD Type 1** (latest value wins, no history).
-
+# MAGIC
 
 # COMMAND ----------
 
@@ -294,7 +294,7 @@
 
 # COMMAND ----------
 
-
+# MAGIC
 # MAGIC %md
 # MAGIC > **Public Preview:** Lakebase CDF needs `REPLICA IDENTITY FULL` on the source tables (the notebook
 # MAGIC > sets it), a destination catalog that doesn't use default storage, and **CAN MANAGE** on the project
