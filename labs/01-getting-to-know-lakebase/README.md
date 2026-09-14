@@ -50,17 +50,24 @@ Everything below is hands-on — go slowly and click around; you can't break any
 
 ## Step 1 — Open your Lakebase project
 
-1. In the Databricks workspace left nav, open **Compute → Database Instances** (also surfaced as
-   **Lakebase**), and open the shared workshop project your facilitator named.
-2. Open the **Branches** view and find **your** branch — **`br · <username>`** (`<username>` is your
-   email's local-part; e.g. `sofia.martins@…` → `sofia-martins`). This is your isolated sandbox.
-3. Take in the branch's **compute endpoint** and the project's Postgres version/region. The shared
-   **production** branch is the facilitator's; you work on yours.
+1. In the **top-right** of the Databricks workspace, click the **9-dots app launcher**.
 
-> 📸 *Optional screenshot — the Lakebase project overview (one production branch + a managed Postgres endpoint). Facilitators can drop `docs/images/ex1-lakebase-project-overview.png` in to show it inline.*
+   ![The 9-dots app launcher in the top-right of the Databricks workspace](images/01-nine-dots-menu.png)
 
-**✓ Check:** you can see the shared project, your own branch **`br · <username>`**, and its endpoint
-host name.
+2. Choose **Lakebase Postgres** ("Operational databases for applications").
+
+   ![The app launcher menu with Lakebase Postgres highlighted](images/02-select-lakebase-postgres.png)
+
+3. On the **Database Projects** page, open the shared workshop project your facilitator named — e.g.
+   **CIBC CM Workshop** (`cibc-cm-workshop-…`). The **Branches** column shows how many branches it holds.
+
+   ![The Database Projects list showing the shared CIBC CM Workshop project](images/03-workshop-lakebase-project.png)
+
+4. Open the **Branches** view and find **your** branch — **`br · <username>`** (`<username>` is your
+   email's local-part; e.g. `sofia.martins@…` → `sofia-martins`). This is your isolated sandbox; the
+   shared **production** branch belongs to the facilitator. You'll explore its compute in Step 2.
+
+**✓ Check:** you can see the shared project and your own branch **`br · <username>`** listed under it.
 
 ---
 
@@ -83,13 +90,24 @@ host name.
 
 ## Step 3 — Run SQL from the built-in SQL Editor
 
-Lakebase has a **SQL Editor** right in the UI, connected to your branch — no local tooling needed.
+Lakebase has a **SQL Editor** built right into the UI and wired to your branch — no local tooling,
+drivers, or connection strings needed.
 
-1. From your project (or branch), click **SQL Editor** (sometimes labelled **Query** / **New query**).
-2. Confirm it's pointed at **your own** branch (`br · <username>`) and the **`databricks_postgres`**
-   database.
-3. Run each of these one at a time. They work on an empty project — you'll create your own tables in
-   Exercise 2.
+1. In your branch's left nav, click **SQL Editor**.
+2. Check the two selectors at the top: they should point at **your own branch's endpoint** and the
+   **`databricks_postgres`** database. A green **Active** badge means the endpoint is awake and ready.
+
+   ![The in-UI SQL Editor showing the branch endpoint and databricks_postgres selectors](images/04-sql-editor-query.png)
+
+3. **Optional — let Genie write some data for you.** Click **Genie** in the branch nav and ask, in
+   plain English:
+
+   > generate a capital market positions table with 100 records
+
+   Then return to the SQL Editor and `SELECT` from the new table. This is just a taste of Genie writing
+   straight to Lakebase — **Exercise 2** generates the full capital-markets dataset.
+
+4. Now run each statement below, one at a time. They work even against an empty schema:
 
 ```sql
 -- Which Postgres are we on?
@@ -117,10 +135,8 @@ WHERE table_schema = 'cm_<username>'
 ORDER BY table_name;
 ```
 
-> Replace `cm_<username>` with your actual schema (e.g. `cm_sofia_martins`). Underscores, not
-> hyphens — Postgres schema names use underscores even though the project name uses hyphens.
-
-> 📸 *Optional screenshot — the in-UI SQL Editor connected to your branch running `SELECT version();`. Facilitators can add `docs/images/ex1-sql-editor-query.png`.*
+> Replace `cm_<username>` with your actual schema (e.g. `cm_sofia_martins`). Use underscores, not
+> hyphens — Postgres schema names use underscores even though the project id uses hyphens.
 
 **✓ Check:** `SELECT version()` returns a PostgreSQL 16/17 banner, `current_user` shows your email,
 and your `cm_<username>` schema now appears in the schema list.
@@ -204,16 +220,15 @@ directly into your Lakebase schema.
 
 ---
 
-### Optional screenshots (nice to have)
+### More screenshots (optional)
 
-The walkthrough reads fine as text — these images are an **optional enhancement**. To show them
-inline, a facilitator captures each from the live Lakebase UI and saves it into `docs/images/` under
-the filename below (the 📸 callouts above name the same files):
+Steps 1 and 3 already embed live screenshots (stored in this folder's [`images/`](images/)). The
+remaining 📸 callouts in the walkthrough are still optional — a facilitator can capture each from the
+live Lakebase UI and drop it into `docs/images/` under the filename shown:
 
 | Filename | What to capture |
 |---|---|
-| `ex1-lakebase-project-overview.png` | The project overview page: production branch + endpoint. |
 | `ex1-lakebase-branch-endpoint.png` | A branch's compute/endpoint details showing capacity + state (ideally `IDLE`). |
-| `ex1-sql-editor-query.png` | The in-UI SQL Editor with `SELECT version();` (or the schema list) run against the branch. |
-| `ex1-lakebase-monitoring.png` | The project Monitoring/Metrics view (connections, compute, storage). |
+| `ex1-lakebase-monitoring.png` | The project Monitoring / Metrics view (connections, compute, storage). |
 | `ex1-app-connect-dialog.png` | The App Connect / Connection details dialog (host, `databricks_postgres`, role options). |
+| `ex1-autoscale-monitoring.png` | The branch Monitoring graph: the CU curve rising under load and settling after. |
