@@ -1,7 +1,7 @@
 # Facilitator guide — CIBC Capital Markets Lakebase Workshop
 
 ## Shape
-One capital-markets desk, eight exercises. All participants share **one Lakebase project**, and each
+One capital-markets desk, nine exercises. All participants share **one Lakebase project**, and each
 works on their **own branch** of it — a Git-like, isolated, copy-on-write clone with its own compute
 endpoint (the exercises connect to the attendee's own branch automatically). They get to know the
 platform (and watch a branch **autoscale** under load), connect to it, generate a realistic CM
@@ -28,6 +28,7 @@ group. The reference solution notebook in each folder is the validated version t
 | **Model Serving — enabled in the workspace** | Ex4 Feature Serving endpoint | Attendees create the endpoint using their workspace access — there is **no separate "create serving endpoint" entitlement** to grant; just have Model Serving enabled in the workspace/region. |
 | **Change Data Feed** | Ex6 (Delta→Lakebase sync) + Ex4 offline feature table (publish prerequisite) | GA (the notebooks set it). |
 | **Lakebase synced tables** (reverse ETL) | Ex6 Delta → `lb_*` on the branch (`w.postgres.create_synced_table`) | Evolving/preview surface — confirm the API + any Preview status in the workspace. Uses the same serverless sync machinery as online tables. |
+| **Databricks Apps** enabled | Ex9 (free-form dashboard app) | Optional capstone. Each app runs as its **own service principal**; that SP needs a Lakebase role + `GRANT USAGE/SELECT` on the attendee's `cm_<user>` / `cm_<user>_ops` schemas (create it with `databricks_create_role('<sp-client-id>','SERVICE_PRINCIPAL')`). It's a **direct psycopg connection** — no `authenticator`/Data API grant. |
 | **Lakebase Change Data Feed (CDF)** | Ex7 — auto-materializes Lakebase changes into `cm_<user>.lb_*_history` Delta tables (`w.postgres.create_cdf_config`) | **Public Preview** (validated live). Two facilitator-facing requirements: **(a)** the shared UC catalog must be backed by an **explicit external location** — a catalog on the metastore's **default managed storage is rejected** (`"not supported for catalogs using Default Storage"`), *even though it reports a `storage_root`*; and **(b)** creating a feed needs **CAN MANAGE on the Lakebase project** — see the CDF note under Permissions. |
 | **Lakeflow / DLT (serverless)** — writes into the attendee's `cm_<user>` schema | Ex7 SCD Type 1 pipeline (`create_auto_cdc_flow`, fallback `apply_changes`) | Attendees create the pipeline using their workspace access — there is **no separate "create pipeline" entitlement** to grant; just have serverless DLT enabled. |
 | **`pgvector` extension** | Ex8 — vector store in Lakebase (`CREATE EXTENSION vector`) | Normally available in Lakebase; the notebook enables it. If it errors, confirm availability for the project. |
@@ -78,6 +79,10 @@ Simplest: put the attendees in one workspace group and grant that group.
 - **Serverless DLT enabled.** Attendees create the Ex7 pipeline and the Ex4 Feature Serving endpoint
   using their **workspace access** — there is **no distinct "create pipeline" / "create serving
   endpoint" entitlement** to grant. Being a workspace user (plus the toggles above) is what enables it.
+- **Databricks Apps enabled** (only for the optional **Ex9** free-form dashboard). Attendees create and
+  deploy the app with their workspace access; the app's **service principal** needs a Lakebase role +
+  `GRANT USAGE/SELECT` on their schemas — which they can set up themselves (they have `CREATEROLE`), since
+  the app connects **directly over psycopg** (no `authenticator`/Data API grant, unlike Ex3's REST path).
 
 > **Ex7 Lakebase CDF needs two things (Public Preview — both confirmed on a live run).** (1) The shared
 > UC catalog must be backed by an **explicit external location**. A catalog on the metastore's default
@@ -110,8 +115,8 @@ Simplest: put the attendees in one workspace group and grant that group.
 
 ## Suggested agenda (full day, ~6–6.5h — or split across two half-days at the break)
 
-The recommended flow is 1 → 8 (as ordered in `docs/attendee.html`). Folder names are numbered
-`labs/01…` – `labs/08…` to match the flow; the numbers below are the exercise/folder numbers.
+The recommended flow is 1 → 9 (as ordered in `docs/attendee.html`). Folder names are numbered
+`labs/01…` – `labs/09…` to match the flow; the numbers below are the exercise/folder numbers.
 
 1. **Kickoff + Exercise 1 — Getting to know Lakebase (45m)** — what Lakebase is; tour the UI; run
    queries in the SQL Editor; then kick off `Autoscale_Load.py` and watch the branch **autoscale**
@@ -137,11 +142,17 @@ The recommended flow is 1 → 8 (as ordered in `docs/attendee.html`). Folder nam
 10. **Exercise 8 — Lakebase Search (40m)** — parse earnings-call PDFs, embed them, and store the
     vectors in **Lakebase (`pgvector`)**; then a LangChain **agent** searches them and answers with
     citations. Ties the day together: Lakebase as vector store + the agent pattern from Ex4/Ex5.
-11. **Wrap-up (15m)** — where Lakebase fits in a CM stack; cleanup.
+11. **Exercise 9 — Build your own dashboard app (40m, free-form)** — ship a Plotly **Dash** Databricks
+    App that reads live from the branch. Attendees design their own dashboard (or use the reference
+    prompt). The app's **service principal** needs a Lakebase role + `GRANT USAGE/SELECT` on the two
+    schemas — a direct psycopg connection, so **no `authenticator`/Data API grant** (unlike Ex3's REST
+    path). A natural capstone; drop it first if you're tight on time.
+12. **Wrap-up (15m)** — where Lakebase fits in a CM stack; cleanup.
 
 > **Tight on time?** The core arc is 1 → 2 → 4 → 5 (get-to-know → connect → feature store → memory).
-> Exercises 3, 6 and 7 (data APIs, Delta↔Lakebase sync) are self-contained and can be dropped or run
-> as a shorter integration-focused half-day.
+> Exercises 3, 6 and 7 (data APIs, Delta↔Lakebase sync) are self-contained and can be dropped, and
+> Exercise 9 (the free-form app) is an optional capstone — so the day flexes to a shorter,
+> integration-focused half-day.
 
 ---
 

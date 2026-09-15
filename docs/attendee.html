@@ -166,7 +166,7 @@
       both ways with the lakehouse, serve live client-risk features to a chatbot, and give that chatbot
       a memory. One managed Postgres, the whole desk.</p>
     <div class="meta">
-      <span><b>~5h</b> · eight exercises</span>
+      <span><b>~5h</b> · nine exercises</span>
       <span><b>Serverless</b> · no cluster</span>
       <span>Hero client · <b>Air Canada (CL-AC)</b></span>
     </div>
@@ -710,6 +710,51 @@ agent = StateGraph(MessagesState)...compile(checkpointer=checkpointer)</code></p
         (Full prompt in the README.)</div></div>
     <div class="note check"><b>✓ Check</b> — <code>earnings_chunks</code> holds one row per chunk with a
       <code>vector</code> column; the agent answers the fuel-exposure question by citing Air Canada's call.</div>
+  </section>
+
+  <section>
+    <div class="exhead"><span class="exnum">9</span><h2>Build your own — a dashboard app</h2></div>
+    <span class="tag">free-form · Databricks App · Plotly Dash</span>
+    <p>The capstone is <b>open-ended</b>: ship a real <b>Databricks App</b> — a Plotly <b>Dash</b>
+      capital-markets dashboard that reads <i>live</i> from your Lakebase branch. Design your own, or start
+      from the reference prompt. The app connects <b>directly with psycopg</b> (like JDBC in Ex3), so its
+      <b>service principal</b> just needs a Postgres role + <code>GRANT USAGE/SELECT</code> on your schemas —
+      no <code>authenticator</code>/Data API grant.</p>
+    <figure>
+      <svg viewBox="0 0 880 200" role="img" aria-label="A Databricks App built with Plotly Dash reads live from your Lakebase branch's cm schemas via psycopg, authenticating as the app's service principal role, and renders a multi-tab capital-markets dashboard.">
+        <defs><marker id="d9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+          <marker id="d9l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lakebase)"/></marker></defs>
+        <rect class="d-lake" x="16" y="52" width="248" height="96" rx="10"/>
+        <text class="d-lbl" x="140" y="80" text-anchor="middle" style="fill:var(--lakebase)">◆ YOUR LAKEBASE BRANCH</text>
+        <text class="d-tb" x="140" y="104" text-anchor="middle">cm_&lt;you&gt; · cm_&lt;you&gt;_ops</text>
+        <text class="d-ts" x="140" y="123" text-anchor="middle">clients · trades · positions · limits</text>
+        <rect class="d-box" x="360" y="66" width="168" height="68" rx="9"/>
+        <text class="d-tb" x="444" y="94" text-anchor="middle">app service principal</text>
+        <text class="d-ts" x="444" y="112" text-anchor="middle">role + GRANT SELECT</text>
+        <rect class="d-accent" x="664" y="52" width="200" height="96" rx="10"/>
+        <text class="d-tb" x="764" y="86" text-anchor="middle">Databricks App</text>
+        <text class="d-ts" x="764" y="106" text-anchor="middle">Plotly Dash · 5 tabs</text>
+        <line class="d-line-lake" x1="264" y1="100" x2="358" y2="100" marker-end="url(#d9l)"/>
+        <text class="d-lbl" x="311" y="92" text-anchor="middle" style="fill:var(--lakebase)">psycopg</text>
+        <line class="d-line" x1="528" y1="100" x2="662" y2="100" marker-end="url(#d9)"/>
+        <text class="d-lbl" x="595" y="92" text-anchor="middle">OAuth cred</text>
+      </svg>
+      <figcaption>The app authenticates as its <b>service-principal role</b> and reads your branch over
+        <code>psycopg</code>, rendering a multi-tab dashboard from live Lakebase data.</figcaption>
+      <div class="legend"><span><span class="swatch" style="background:var(--lakebase)"></span>Lakebase branch</span><span><span class="swatch" style="background:var(--accent)"></span>Databricks App</span></div>
+    </figure>
+    <div class="path-notebook"><div class="pathlabel"><span class="dot"></span>Ship the app</div>
+      <p>Create the app (<code>databricks apps create cm-trading-dashboard</code>), grant its service
+        principal a Lakebase role + <code>SELECT</code> on your two schemas, add <code>app.py</code> /
+        <code>requirements.txt</code> / <code>app.yaml</code>, and deploy. Full walkthrough in
+        <a href="../labs/09-trading-dashboard/README.md" target="_blank" rel="noopener"><code>labs/09-trading-dashboard/README.md</code></a>.</p></div>
+    <div class="path-genie"><div class="pathlabel"><span class="dot"></span>Generate with Genie</div>
+      <div class="prompt"><span class="lbl">Genie Code prompt</span>Create a Databricks App (Plotly Dash)
+        connected to Lakebase over <code>psycopg</code>, with a global filter bar and five tabs (Overview,
+        Trading, Positions, Market, Clients) over your <code>cm_&lt;you&gt;</code> data. (Full reference
+        prompt in the README.)</div></div>
+    <div class="note check"><b>✓ Done</b> — the app is deployed and its first screen shows <i>your</i>
+      data across the five tabs; filters update the charts; empty results show a graceful "No data" state.</div>
   </section>
 
 

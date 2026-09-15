@@ -177,6 +177,24 @@ returns Air Canada passages; the agent answers by calling the tool and citing th
 
 ---
 
+## Exercise 9 — Build your own dashboard app (free-form)
+**A:** `labs/09-trading-dashboard/README.md` → *Reference prompt* (in the collapsible block). **B:** none —
+attendees ship a **Databricks App** (Plotly **Dash**) from their own prompt, or the reference one. The app
+reads live from the branch via **psycopg + an OAuth DB credential**; because it connects directly over the
+Postgres wire, the app's **service principal** just needs a Lakebase role + `GRANT USAGE/SELECT` on
+`cm_<me>` and `cm_<me>_ops` — **no `authenticator`/Data API grant** (that only applies to Ex3's REST path).
+This is the open-ended capstone: there's no single reference notebook to diff against.
+
+✓ The app deploys and its first screen shows the attendee's own data across the five tabs (Overview,
+Trading, Positions, Market, Clients); filters update the charts; empty filter results render a graceful
+"No data" state.
+
+> **App SP setup:** create the app first (`databricks apps create cm-trading-dashboard` or the Apps UI) to
+> get its client ID, then `SELECT databricks_create_role('<sp-client-id>','SERVICE_PRINCIPAL')` + the two
+> `GRANT`s on the branch. Attendees have `CREATEROLE`, so they can do this themselves.
+
+---
+
 ## The hero thread (keep it consistent)
 **Air Canada (`CL-AC`)** carries a large WTI/heating-oil energy book → HIGH-risk features in the
 feature-store exercise, the client the coverage officer tells the assistant about in the memory
