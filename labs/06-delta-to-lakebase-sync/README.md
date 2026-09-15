@@ -19,8 +19,8 @@ Postgres table — lakehouse-curated data, served at OLTP latency.
 
 ## Run the notebook
 Open `Delta_To_Lakebase.py` on serverless and **Run all**. It:
-1. Builds a curated Delta source `client_reference` (9 clients, `risk_limit_cad`) with a PK + CDF.
-2. Creates a synced table `lb_client_reference` into **your Lakebase branch** via
+1. Builds a curated Delta source `src_client_reference` (9 clients, `risk_limit_cad`) with a PK + CDF.
+2. Creates a synced table `client_reference` into **your Lakebase branch** via
    `w.postgres.create_synced_table` (SNAPSHOT first load), and waits for it to come online.
 3. Reads it back over Postgres (`get_connection()`) and checks the row count matches the source.
 4. Raises Air Canada's risk limit in Delta, re-syncs (TRIGGERED incremental), and shows the new value
@@ -33,20 +33,20 @@ Open `Delta_To_Lakebase.py` on serverless and **Run all**. It:
 Fresh Genie Code chat on a serverless notebook, paste:
 
 > Create a Databricks notebook that syncs a Unity Catalog Delta table into my Lakebase branch as an
-> operational `lb_` table (reverse ETL). `%run ../_setup` for helpers (`w`, `PROJECT_ID`,
+> operational Postgres table (reverse ETL). `%run ../_setup` for helpers (`w`, `PROJECT_ID`,
 > `USER_BRANCH`, `PG_DATABASE`, `get_connection`). Steps: (1) build a Delta table
-> `main.cm_<me>.client_reference` — 9 CIBC capital-markets clients with `client_id` PK,
+> `main.cm_<me>.src_client_reference` — 9 CIBC capital-markets clients with `client_id` PK,
 > `legal_name`, `sector`, `credit_rating`, `risk_limit_cad`, `coverage_officer`, `updated_at` — with a
-> PRIMARY KEY and Change Data Feed enabled. (2) Create a Lakebase synced table `lb_client_reference`
+> PRIMARY KEY and Change Data Feed enabled. (2) Create a Lakebase synced table `client_reference`
 > from it with `w.postgres.create_synced_table` (`SyncedTable` + spec: `source_table_full_name`,
 > `primary_key_columns=["client_id"]`, `branch=USER_BRANCH`, `postgres_database="databricks_postgres"`,
 > `scheduling_policy=SNAPSHOT`, `create_database_objects_if_missing=True`, a `new_pipeline_spec`), and
-> wait for it to come online. (3) Verify by reading `lb_client_reference` over psycopg and comparing
+> wait for it to come online. (3) Verify by reading `client_reference` over psycopg and comparing
 > the count to the Delta source. (4) Update a row in Delta, re-sync (TRIGGERED), and show it propagate.
 
 ## ✓ Validation
-- Delta source `client_reference` has 9 rows, a primary key, and CDF enabled.
-- `lb_client_reference` exists on **your branch** and its row count matches the source.
+- Delta source `src_client_reference` has 9 rows, a primary key, and CDF enabled.
+- `client_reference` exists on **your branch** and its row count matches the source.
 - After raising Air Canada's limit and re-syncing, Lakebase shows **CAD 300,000,000**.
 
 ## Notes & docs
@@ -58,5 +58,6 @@ Fresh Genie Code chat on a serverless notebook, paste:
   [Online tables & sync](https://docs.databricks.com/aws/en/machine-learning/feature-store/online-feature-store).
 
 ## What's next
-**Exercise 7 — Lakebase → Delta (SCD Type 1)** is the reverse direction: it captures writes to your
-`lb_*` operational tables back into the lakehouse and transforms them into **SCD1** analytical tables.
+**Exercise 7 — Lakebase → Delta (SCD Type 1)** is the reverse direction: it captures changes to your
+operational Postgres tables (`positions`, `limits`) back into the lakehouse — via **Lakebase CDF**, which
+auto-materializes them as `lb_*_history` Delta tables — and transforms them into **SCD1** analytical tables.
