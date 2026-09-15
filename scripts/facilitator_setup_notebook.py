@@ -9,7 +9,7 @@
 # MAGIC Run the whole workshop provisioning **in Databricks**, with widgets and your notebook
 # MAGIC identity (no CLI, no profile, nothing installed on a laptop). It is idempotent — safe to
 # MAGIC re-run. It:
-# MAGIC 1. Creates the shared **Lakebase project(s)** and waits for the root-branch endpoint.
+# MAGIC 1. Creates the shared **Lakebase project(s)** and waits for the production endpoint.
 # MAGIC 2. Grants each attendee `CAN_USE` (control plane) + a Postgres OAuth login role (data
 # MAGIC    plane — installs the `databricks_auth` extension).
 # MAGIC 3. Forks a **branch per attendee** (`br · <username>`, own endpoint, 1 → `branch_max_cu` CU).
@@ -45,6 +45,8 @@ dbutils.library.restartPython()
 # COMMAND ----------
 
 dbutils.widgets.text("project_id", "cibc-cm-workshop", "1 · Lakebase project id (base)")
+dbutils.widgets.dropdown("create_project", "true", ["true", "false"],
+                         "1b · Create the Lakebase project if missing")
 dbutils.widgets.text("grant_users", "", "2 · Attendee emails (comma/space separated)")
 dbutils.widgets.text("uc_catalog", "main", "3 · Unity Catalog catalog (blank = skip UC)")
 dbutils.widgets.text("warehouse_id", "", "4 · SQL warehouse id (optional — not required)")
@@ -82,54 +84,48 @@ def _sanitize(email):
 
 
 # ── Project ───────────────────────────────────────────────────────────────────
-def ensure_project(w, pid, pg_version, display_name, dry_run, max_cu=4):
-    """Create the Lakebase project if it doesn't exist. Idempotent.
+def ensure_project(w, pid, pg_version, display_name, dry_run, max_cu=4, create=True):
+    """Ensure the Lakebase project exists. Idempotent.
 
-    The project's `default_endpoint_settings` are set to autoscale 1 → `max_cu` CU so that every
-    branch endpoint forked off it inherits that range — the Ex1 load/autoscale demo needs headroom
-    above 1 CU to actually show compute scaling. (SDK field names verified against
-    databricks.sdk.service.postgres v0.75.0: Project takes display_name/pg_version directly — there
-    is no ProjectSpec — and pg_version is an int.)"""
-    from databricks.sdk.service.postgres import Project, ProjectDefaultEndpointSettings
+    `create` (the `create_project` widget) gates provisioning: when True, create the project if it's
+    missing; when False, require it to already exist and fail with a clear message if not (for
+    facilitators who pre-create the project and just want the branches/grants applied).
+
+    On creation, the project's `default_endpoint_settings` autoscale 1 → `max_cu` CU so the
+    auto-provisioned `production` endpoint (and any branch endpoint that inherits it) has headroom
+    above 1 CU for the Ex1 autoscale demo.
+
+    SDK shapes verified LIVE against databricks-sdk 0.139.0 (the `>=0.118.0` the labs pin, which is
+    what the serverless runtime ships): Project wraps a ProjectSpec, pg_version is an int, and a
+    freshly created project auto-provisions a `production` branch + `primary` endpoint."""
+    from databricks.sdk.service.postgres import Project, ProjectSpec, ProjectDefaultEndpointSettings
     try:
         w.postgres.get_project(name=f"projects/{pid}")
         log(f"✓ Project exists: {pid}")
         return
     except Exception:
         pass
+    if not create:
+        raise ValueError(
+            f"Lakebase project '{pid}' does not exist and create_project=false. "
+            f"Set the 'create_project' widget to true to create it, or fix 'project_id' to point at "
+            f"an existing project.")
     if dry_run:
         log(f"[dry-run] would create project '{pid}' (PostgreSQL {pg_version}, "
             f"branch endpoints autoscale 1→{max_cu} CU)")
         return
     log(f"Creating project '{pid}' (PostgreSQL {pg_version}) ...")
     w.postgres.create_project(
-        project=Project(
-            display_name=display_name,
-            pg_version=int(pg_version),
+        project=Project(spec=ProjectSpec(
+            display_name=display_name, pg_version=int(pg_version),
             default_endpoint_settings=ProjectDefaultEndpointSettings(
-                autoscaling_limit_min_cu=1, autoscaling_limit_max_cu=max_cu),
-        ),
+                autoscaling_limit_min_cu=1, autoscaling_limit_max_cu=max_cu))),
         project_id=pid,
     ).wait()
     log(f"✓ Project created: {pid}  (branch endpoints autoscale 1→{max_cu} CU)")
 
 
-def default_branch(w, pid):
-    """Return the project's default (root) branch id — the source for attendee branches.
-
-    Discovered from the API rather than assumed: a Branch carries a `default` flag. Falls back to
-    'production' if discovery isn't possible (e.g. the project doesn't exist yet in a dry run)."""
-    try:
-        for b in w.postgres.list_branches(parent=f"projects/{pid}"):
-            if getattr(b, "default", False) or getattr(b, "effective_default", False):
-                return (b.name or "").split("/")[-1] or "production"
-    except Exception:
-        pass
-    return "production"
-
-
-def wait_for_endpoint(w, pid, branch=None, max_attempts=90, delay=5):
-    branch = branch or default_branch(w, pid)
+def wait_for_endpoint(w, pid, branch="production", max_attempts=90, delay=5):
     for _ in range(max_attempts):
         try:
             eps = list(w.postgres.list_endpoints(parent=f"projects/{pid}/branches/{branch}"))
@@ -159,64 +155,58 @@ def pg_connect(w, ep, me, retries=4):
 
 
 # ── Branch per attendee ───────────────────────────────────────────────────────
-def ensure_branch(w, pid, branch_id, dry_run, max_cu=4, source_branch="production"):
-    """Create branch_id off the project's default branch (+ ensure it has a READ_WRITE endpoint).
-    Idempotent.
+def ensure_branch(w, pid, branch_id, dry_run, max_cu=4):
+    """Create branch_id off production (+ a primary READ_WRITE endpoint). Idempotent.
 
-    SDK shapes verified against databricks.sdk.service.postgres v0.75.0: Branch takes
-    `source_branch` directly (no BranchSpec, no `no_expiry` — branches persist until deleted);
-    Endpoint takes `endpoint_type`/autoscaling fields directly (no EndpointSpec); the enum value is
-    `EndpointType.READ_WRITE`; and neither create_branch nor create_endpoint accepts
-    `replace_existing`. Because we can't clobber an endpoint, the autoscaling range is set at the
-    PROJECT level (ensure_project → default_endpoint_settings) so the branch's auto-provisioned
-    endpoint already inherits 1→max_cu; here we only create one if the branch has none."""
-    from databricks.sdk.service.postgres import Branch, Endpoint, EndpointType
+    The endpoint is provisioned with an autoscaling range (min 1 → max `max_cu`) via
+    `replace_existing`, which overrides the branch's auto-created endpoint so the Ex1 load/autoscale
+    demo has headroom to show compute scaling.
+
+    SDK shapes verified LIVE against databricks-sdk 0.139.0 (the runtime `>=0.118.0`): Branch wraps a
+    BranchSpec (with `source_branch` / `no_expiry`), Endpoint wraps an EndpointSpec, the enum value
+    is `EndpointType.ENDPOINT_TYPE_READ_WRITE`, and both create_branch/create_endpoint accept
+    `replace_existing`. Note the detail fields read back under `.spec` / `.status` (e.g.
+    `ep.status.hosts.host`), not at top level."""
+    from databricks.sdk.service.postgres import (
+        Branch, BranchSpec, Endpoint, EndpointSpec, EndpointType,
+    )
     full = f"projects/{pid}/branches/{branch_id}"
     try:
         w.postgres.get_branch(name=full)
         log(f"  ✓ branch exists: {branch_id}")
     except Exception:
         if dry_run:
-            log(f"  [dry-run] would create branch '{branch_id}' off {source_branch}")
+            log(f"  [dry-run] would create branch '{branch_id}' off production")
         else:
             try:
                 w.postgres.create_branch(
                     parent=f"projects/{pid}",
-                    branch=Branch(source_branch=f"projects/{pid}/branches/{source_branch}"),
+                    branch=Branch(spec=BranchSpec(
+                        source_branch=f"projects/{pid}/branches/production",
+                        no_expiry=True)),  # persist through the workshop; delete after (see guide)
                     branch_id=branch_id,
                 ).wait()
                 log(f"  ✓ branch created: {branch_id}")
             except Exception as e:
                 log(f"  ⚠ could not create branch {branch_id}: {e}")
                 return
+    # primary endpoint on the branch
     if dry_run:
-        log(f"  [dry-run] would ensure a READ_WRITE endpoint on {branch_id} (autoscale 1→{max_cu} CU)")
-        return
-    # A branch usually auto-provisions an endpoint, inheriting the project's default 1→max_cu range.
-    # Only create one if none exists (the SDK has no replace_existing, so we never clobber it).
-    try:
-        eps = list(w.postgres.list_endpoints(parent=full))
-    except Exception as e:
-        eps = []
-        log(f"    ⚠ could not list endpoints on {branch_id}: {e}")
-    if eps:
-        ep = eps[0]
-        hi = (getattr(ep, "effective_autoscaling_limit_max_cu", None)
-              or getattr(ep, "autoscaling_limit_max_cu", None))
-        log(f"    ✓ endpoint present on {branch_id} (autoscale max {hi or '?'} CU — inherited from "
-            f"the project; raise in the Lakebase UI if it's not 1→{max_cu})")
+        log(f"  [dry-run] would create primary READ_WRITE endpoint on {branch_id} (1→{max_cu} CU)")
         return
     try:
+        # replace_existing so we override the auto-created 1/1 endpoint with a 1→max_cu
+        # range (branches otherwise inherit the project default → make sure it has room to scale).
         w.postgres.create_endpoint(
             parent=full,
-            endpoint=Endpoint(
-                endpoint_type=EndpointType.READ_WRITE,
-                autoscaling_limit_min_cu=1, autoscaling_limit_max_cu=max_cu),
-            endpoint_id="primary",
+            endpoint=Endpoint(spec=EndpointSpec(
+                endpoint_type=EndpointType.ENDPOINT_TYPE_READ_WRITE,
+                autoscaling_limit_min_cu=1, autoscaling_limit_max_cu=max_cu)),
+            endpoint_id="primary", replace_existing=True,
         ).wait()
-        log(f"    ✓ endpoint created on {branch_id} (autoscale 1→{max_cu} CU)")
+        log(f"    ✓ endpoint on {branch_id} set to 1→{max_cu} CU (autoscaling)")
     except Exception as e:
-        log(f"    ⚠ could not create endpoint on {branch_id} (raise max CU in the Lakebase UI): {e}")
+        log(f"    ⚠ could not set endpoint on {branch_id} (raise max CU in the Lakebase UI): {e}")
 
 
 # ── Grants ────────────────────────────────────────────────────────────────────
@@ -428,7 +418,7 @@ def chunk(lst, n):
 # ── orchestration ─────────────────────────────────────────────────────────────
 def run(*, project_id="cibc-cm-workshop", pg_version="17", grant_users=None,
         grant_groups=None, max_branches_per_project=18, branch_max_cu=4, app_name=None,
-        uc_catalog=None, warehouse_id=None, dry_run=False):
+        uc_catalog=None, warehouse_id=None, dry_run=False, create_project=True):
     """Run the full facilitator setup with the notebook's ambient identity (WorkspaceClient())."""
     from databricks.sdk import WorkspaceClient
     grant_users = list(grant_users or [])
@@ -463,7 +453,7 @@ def run(*, project_id="cibc-cm-workshop", pg_version="17", grant_users=None,
     log(f"  Auth:        ambient (notebook/runtime)   Workspace: {(w.config.host or '').rstrip('/')}")
     log(f"  Run as:      {me}")
     log(f"  Attendees:   {len(attendees)}   Max branches/project: {maxb}   Projects: {n_projects}")
-    log(f"  Dry run:     {dry_run}")
+    log(f"  Dry run:     {dry_run}   Create project if missing: {create_project}")
     log("=" * 68)
     if n_projects > 1:
         log(f"⚠ {len(attendees)} attendees exceeds {maxb}/project — splitting across "
@@ -473,24 +463,23 @@ def run(*, project_id="cibc-cm-workshop", pg_version="17", grant_users=None,
     for pid, chunk_users in projects:
         log("")
         log(f"### Project: {pid}   ({len(chunk_users)} attendees)")
-        ensure_project(w, pid, pg_version, f"CIBC CM Workshop ({pid})", dry_run, max_cu=branch_max_cu)
+        ensure_project(w, pid, pg_version, f"CIBC CM Workshop ({pid})", dry_run,
+                       max_cu=branch_max_cu, create=create_project)
         grant_control_plane(w, pid, grant_groups, chunk_users, app_sp, dry_run)
 
-        src = "production"
         if not dry_run:
-            src = default_branch(w, pid)          # the project's root branch (discovered)
-            ep = wait_for_endpoint(w, pid, branch=src)
-            log(f"  ✓ {src} endpoint ready ({ep.status.hosts.host})")
+            ep = wait_for_endpoint(w, pid)
+            log(f"  ✓ production endpoint ready ({ep.status.hosts.host})")
             conn = pg_connect(w, ep, me)
             try:
                 enable_data_plane(conn, grant_groups, chunk_users, app_sp)
             finally:
                 conn.close()
 
-        log(f"  Creating {len(chunk_users)} attendee branch(es) off '{src}' ...")
+        log(f"  Creating {len(chunk_users)} attendee branch(es) ...")
         for u in chunk_users:
             b = _sanitize(u)
-            ensure_branch(w, pid, b, dry_run, max_cu=branch_max_cu, source_branch=src)
+            ensure_branch(w, pid, b, dry_run, max_cu=branch_max_cu)
             mapping.append((u, pid, b))
 
     ensure_uc(w, uc_catalog, grant_groups, attendees, dry_run)
@@ -544,5 +533,6 @@ _rc = run(
     uc_catalog=(g("uc_catalog").strip() or None),
     warehouse_id=(g("warehouse_id").strip() or None),
     dry_run=(g("dry_run") == "true"),
+    create_project=(g("create_project") == "true"),
 )
 print("\n(return code:", _rc, "— 0 = success)")
