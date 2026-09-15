@@ -45,6 +45,55 @@ Fresh Genie Code chat on a serverless notebook, paste:
 > wait for it to come online. (3) Verify by reading `client_reference` over psycopg and comparing
 > the count to the Delta source. (4) Update a row in Delta, re-sync (TRIGGERED), and show it propagate.
 
+---
+
+## Optional — do the sync yourself from the UI (Genie for the data, Catalog Explorer for the sync)
+
+The main lab creates the synced table *in code*. This optional path is the point-and-click version:
+**Genie Code generates a dummy table, then you set up the synced table in the Catalog Explorer UI** — the
+same way you'd wire up a real reverse-ETL without writing the SDK call.
+
+**1. Generate a dummy table with Genie Code.** In a fresh Genie Code chat on a serverless notebook, paste:
+
+> Create a Databricks notebook that generates a small **dummy capital-markets** table in Unity Catalog
+> for a sync demo. `%run ../_setup` to get `UC_CATALOG` and `UC_SCHEMA`. Build a Delta table
+> `{UC_CATALOG}.{UC_SCHEMA}.sync_demo` with columns `instrument_id STRING`, `ticker STRING`,
+> `asset_class STRING`, `last_price DOUBLE`, `currency STRING`, `updated_at TIMESTAMP`, and insert ~15
+> dummy rows (a mix of equities, FX, and commodities). Declare `instrument_id` as the **PRIMARY KEY**
+> and enable **Change Data Feed** (`delta.enableChangeDataFeed = true`) so the table can be synced in
+> Triggered or Continuous mode. Print the fully-qualified table name at the end.
+
+**2. Create the synced table in the UI.** These steps follow the Databricks docs
+([Serve lakehouse data with synced tables](https://docs.databricks.com/aws/en/oltp/projects/sync-tables)):
+
+1. In the workspace sidebar, open **Catalog**.
+2. Navigate to your table: `<catalog>` → `cm_<you>` → **`sync_demo`**.
+3. On the table page, click **Create ▸ Synced table**.
+4. In the **Create synced table** dialog:
+   - **Synced table name** — it's created in the **same catalog/schema as the source**; name it e.g. `sync_demo_online`.
+   - **Database type** — choose **Lakebase Serverless (Autoscaling)**.
+   - **Sync mode** — pick one:
+     - **Snapshot** — one-time full copy (simplest; no CDF needed).
+     - **Triggered** — scheduled/on-demand incremental updates.
+     - **Continuous** — real-time streaming, seconds of latency.
+   - **Project, branch, and database** — select your Lakebase **project**, **your branch** (`br · <you>`), and the **`databricks_postgres`** database.
+   - **Primary key** — confirm the auto-detected **`instrument_id`**. (PK columns can't be null; rows with a null PK are excluded.)
+   - **Timeseries key** *(optional)* — leave blank unless rows can share a primary key (it keeps only the latest row per key).
+5. Create it and wait — the **Overview** tab of the new synced table shows **sync status, pipeline status, and last-sync timestamp**.
+
+> **Prerequisites (per the docs):** for **Triggered** or **Continuous** you need **Change Data Feed** on
+> the source (the Genie notebook enables it); **Snapshot** doesn't. You also need `USE SCHEMA` +
+> `CREATE TABLE` on the target schema — you own your `cm_<you>` schema, so that's covered.
+
+**3. Read it back on your branch.** In the Lakebase **SQL Editor** (your branch) or over psycopg:
+```sql
+SELECT * FROM cm_<you>.sync_demo_online ORDER BY instrument_id;
+```
+You should see the 15 dummy rows now living as an operational Postgres table on your branch — created
+entirely through Genie + the UI, no `create_synced_table` call.
+
+---
+
 ## ✓ Validation
 - Delta source `src_client_reference` has 9 rows, a primary key, and CDF enabled.
 - `client_reference` exists on **your branch** and its row count matches the source.
