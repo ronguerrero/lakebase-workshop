@@ -34,8 +34,9 @@ Fresh Genie Code chat on a serverless notebook, paste:
 
 > Create a Databricks notebook that syncs a Unity Catalog Delta table into my Lakebase branch as an
 > operational Postgres table (reverse ETL). `%run ../_setup` for helpers (`w`, `PROJECT_ID`,
-> `USER_BRANCH`, `PG_DATABASE`, `get_connection`). Steps: (1) build a Delta table
-> `main.cm_<me>.src_client_reference` — 9 CIBC capital-markets clients with `client_id` PK,
+> `USER_BRANCH`, `PG_DATABASE`, `UC_CATALOG`, `UC_SCHEMA`, `get_connection`). Steps: (1) build a Delta
+> table `{UC_CATALOG}.{UC_SCHEMA}.src_client_reference` (i.e. your workshop catalog + your `cm_<me>`
+> schema, both from `_setup`) — 9 CIBC capital-markets clients with `client_id` PK,
 > `legal_name`, `sector`, `credit_rating`, `risk_limit_cad`, `coverage_officer`, `updated_at` — with a
 > PRIMARY KEY and Change Data Feed enabled. (2) Create a Lakebase synced table `client_reference`
 > from it with `w.postgres.create_synced_table` (`SyncedTable` + spec: `source_table_full_name`,

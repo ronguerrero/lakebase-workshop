@@ -41,7 +41,8 @@ versioning, and serving layer — so it's not how the chatbot should look featur
 > Create a Databricks notebook that builds a **capital-markets online feature store** on my
 > **Lakebase** project. Steps:
 > 1. `%pip install "databricks-feature-engineering>=0.13.0" "psycopg[binary]>=3.1.0" "protobuf>=5.29.5,<6" "mlflow"`, then `dbutils.library.restartPython()`.
-> 2. In Unity Catalog, use catalog `main` and schema `cm_<my_username>` (sanitize my
+> 2. In Unity Catalog, use my workshop catalog `<catalog>` (the `SHARED_CATALOG` set in
+>    `labs/_setup.py`, e.g. `main`) and schema `cm_<my_username>` (sanitize my
 >    email local-part, `-`/`.`→`_`). Build a Spark DataFrame of **per-client risk features**,
 >    one row per `client_id`, for 9 Canadian capital-markets clients (Air Canada `CL-AC`,
 >    Suncor `CL-SU`, Cenovus `CL-CVE`, BCE `CL-BCE`, Manulife `CL-MFC`, Barrick `CL-ABX`, CN
@@ -52,7 +53,7 @@ versioning, and serving layer — so it's not how the chatbot should look featur
 >    `num_trades_30d`, `avg_trade_notional_cad`, `largest_position_pct`,
 >    `realized_pnl_30d_cad`, `portfolio_volatility`, `days_since_last_trade`,
 >    `credit_rating_score`, `risk_tier` (LOW/MEDIUM/HIGH). Use a fixed random seed.
-> 3. Create the offline feature table `main.cm_<my_username>.client_risk_features`
+> 3. Create the offline feature table `<catalog>.cm_<my_username>.client_risk_features`
 >    with `FeatureEngineeringClient.create_table(primary_keys=["client_id"], df=...)`, then
 >    enable Change Data Feed on it.
 > 4. Publish it to my Lakebase project as the online store: `fe.get_online_store(name=<my
@@ -61,7 +62,7 @@ versioning, and serving layer — so it's not how the chatbot should look featur
 > 5. Verify the online table exists by connecting to Lakebase over psycopg (SDK OAuth
 >    credential, keyword args, `sslmode=require`) and listing `pg_tables` matching
 >    `%client_risk%`.
-> 6. Create a `FeatureSpec` `main.cm_<my_username>.client_risk_spec` with a
+> 6. Create a `FeatureSpec` `<catalog>.cm_<my_username>.client_risk_spec` with a
 >    `FeatureLookup(table_name=<feature table>, lookup_key="client_id")`, then create a
 >    **Feature Serving endpoint** `cm-client-risk-<my_username>` with `scale_to_zero_enabled`,
 >    and query it with `mlflow.deployments.get_deploy_client("databricks").predict(...)` for
