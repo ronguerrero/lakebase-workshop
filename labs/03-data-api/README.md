@@ -87,8 +87,8 @@ and obey the same grants.
 
 ## Docs
 - Lakebase **Data API** (PostgREST-compatible), enablement, schema exposure, tokens:
-  <https://docs.databricks.com/aws/en/oltp/projects/data-api>
-- Lakebase (managed Postgres) — connecting apps: <https://docs.databricks.com/aws/en/oltp/>
+  <https://learn.microsoft.com/en-us/azure/databricks/oltp/projects/data-api>
+- Lakebase (managed Postgres) — connecting apps: <https://learn.microsoft.com/en-us/azure/databricks/oltp/>
 - PostgreSQL JDBC driver: `org.postgresql:postgresql` (Maven).
 
 ## What's next

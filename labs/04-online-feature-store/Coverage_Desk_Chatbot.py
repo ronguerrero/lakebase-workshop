@@ -14,7 +14,7 @@
 # MAGIC **The pattern to notice:** the LLM decides *when* to fetch features; the tool does
 # MAGIC the fetch. "Tool vs MLflow API" is a false choice — the tool *is* an MLflow deploy-
 # MAGIC client call. That is the documented agent pattern
-# MAGIC ([RAG with feature serving](https://docs.databricks.com/aws/en/machine-learning/feature-store/rag)).
+# MAGIC ([RAG with feature serving](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/rag)).
 # MAGIC
 # MAGIC **Prerequisite:** run `Feature_Store.py` first (it creates the serving endpoint).
 

@@ -67,4 +67,4 @@ Build a Databricks notebook that does PDF RAG with Lakebase as the vector store.
 
 ## Docs
 - pgvector: https://github.com/pgvector/pgvector
-- Databricks Foundation Model APIs (embeddings): https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis/
+- Databricks Foundation Model APIs (embeddings): https://learn.microsoft.com/en-us/azure/databricks/machine-learning/foundation-model-apis/

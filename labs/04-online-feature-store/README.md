@@ -24,9 +24,9 @@ monitored through MLflow, and built for low-latency, high-concurrency reads. For
 the docs' RAG guidance is explicit — *wrap the endpoint in a LangChain tool and let the
 agent call it*. So "is it a tool or an MLflow API?" is a false choice: **the tool is an
 MLflow deploy-client call.**
-- [Feature & function serving](https://docs.databricks.com/aws/en/machine-learning/feature-store/feature-function-serving)
-- [Feature serving tutorial](https://docs.databricks.com/aws/en/machine-learning/feature-store/feature-serving-tutorial)
-- [RAG / agent integration](https://docs.databricks.com/aws/en/machine-learning/feature-store/rag)
+- [Feature & function serving](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/feature-function-serving)
+- [Feature serving tutorial](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/feature-serving-tutorial)
+- [RAG / agent integration](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/rag)
 
 A **direct Postgres read** of the online table (we do this once in §4 to verify the
 publish) is fine for a quick check or a batch job, but it bypasses the governance,

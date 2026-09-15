@@ -64,7 +64,7 @@ same way you'd wire up a real reverse-ETL without writing the SDK call.
 > Triggered or Continuous mode. Print the fully-qualified table name at the end.
 
 **2. Create the synced table in the UI.** These steps follow the Databricks docs
-([Serve lakehouse data with synced tables](https://docs.databricks.com/aws/en/oltp/projects/sync-tables)):
+([Serve lakehouse data with synced tables](https://learn.microsoft.com/en-us/azure/databricks/oltp/projects/sync-tables)):
 
 1. In the workspace sidebar, open **Catalog**.
 2. Navigate to your table: `<catalog>` → `cm_<you>` → **`sync_demo`**.
@@ -104,8 +104,8 @@ entirely through Genie + the UI, no `create_synced_table` call.
   with the same OAuth connection pattern as every other lab.
 - Synced tables / reverse ETL into Lakebase is an actively evolving surface — check the Databricks
   docs for the current API and any **Preview** status:
-  [Sync data to Lakebase / synced tables](https://docs.databricks.com/aws/en/oltp/) ·
-  [Online tables & sync](https://docs.databricks.com/aws/en/machine-learning/feature-store/online-feature-store).
+  [Sync data to Lakebase / synced tables](https://learn.microsoft.com/en-us/azure/databricks/oltp/) ·
+  [Online tables & sync](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/online-feature-store).
 
 ## What's next
 **Exercise 7 — Lakebase → Delta (SCD Type 1)** is the reverse direction: it captures changes to your

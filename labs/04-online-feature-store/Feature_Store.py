@@ -368,8 +368,8 @@ except Exception as e:
 # MAGIC **Feature Serving endpoint** built from a `FeatureSpec`, queried with the MLflow
 # MAGIC deploy client. This is exactly what the chatbot's feature-lookup **tool** calls.
 # MAGIC
-# MAGIC Docs: [Feature & function serving](https://docs.databricks.com/aws/en/machine-learning/feature-store/feature-function-serving)
-# MAGIC · [Serving tutorial](https://docs.databricks.com/aws/en/machine-learning/feature-store/feature-serving-tutorial)
+# MAGIC Docs: [Feature & function serving](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/feature-function-serving)
+# MAGIC · [Serving tutorial](https://learn.microsoft.com/en-us/azure/databricks/machine-learning/feature-store/feature-serving-tutorial)
 
 # COMMAND ----------
 

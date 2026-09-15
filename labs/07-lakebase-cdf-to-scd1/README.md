@@ -115,6 +115,6 @@ Unlike a snapshot extract, CDF captures **deletes** natively — a `DELETE` arri
 `apply_as_deletes` removes it from the current table.
 
 ## Docs
-- Lakebase Change Data Feed: https://docs.databricks.com/aws/en/oltp/projects/lakebase-cdf
-- Lakeflow AUTO CDC / `apply_changes` (SCD 1 & 2): https://docs.databricks.com/aws/en/dlt/cdc
-- Lakeflow Declarative Pipelines (DLT): https://docs.databricks.com/aws/en/dlt/
+- Lakebase Change Data Feed: https://learn.microsoft.com/en-us/azure/databricks/oltp/projects/lakebase-cdf
+- Lakeflow AUTO CDC / `apply_changes` (SCD 1 & 2): https://learn.microsoft.com/en-us/azure/databricks/dlt/cdc
+- Lakeflow Declarative Pipelines (DLT): https://learn.microsoft.com/en-us/azure/databricks/dlt/

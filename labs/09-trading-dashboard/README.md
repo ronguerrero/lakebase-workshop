@@ -206,6 +206,6 @@ debug=False.
 </details>
 
 ## Docs
-- Databricks Apps: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/
-- Lakebase from an app (OAuth DB credential): https://docs.databricks.com/aws/en/oltp/
+- Databricks Apps: https://learn.microsoft.com/en-us/azure/databricks/dev-tools/databricks-apps/
+- Lakebase from an app (OAuth DB credential): https://learn.microsoft.com/en-us/azure/databricks/oltp/
 - Plotly Dash: https://dash.plotly.com/

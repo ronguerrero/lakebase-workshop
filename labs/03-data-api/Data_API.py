@@ -97,7 +97,7 @@ conn.close()
 # MAGIC
 # MAGIC > If the Data API isn't fully set up yet, this cell **degrades gracefully** and prints the precise
 # MAGIC > fix, and the **JDBC path (Part B) always works** regardless — it authenticates directly as your
-# MAGIC > role and never touches `authenticator`. Docs: https://docs.databricks.com/aws/en/oltp/projects/data-api
+# MAGIC > role and never touches `authenticator`. Docs: https://learn.microsoft.com/en-us/azure/databricks/oltp/projects/data-api
 
 # COMMAND ----------
 
